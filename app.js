@@ -214,9 +214,17 @@ async function saveSale(e){
   }catch(err){toast(err.message,"error")}finally{setBusy(e.currentTarget,false)}
 }
 async function savePurchase(e){
-  e.preventDefault();setBusy(e.currentTarget,true);
+  e.preventDefault();setBusy(e.currentTarget,true);$("purchaseError").hidden=true;$("purchaseError").textContent="";
   const payload={user_id:state.user.id,data_compra:$("purchaseDate").value,cartucho_id:$("purchaseCartridge").value,quantidade:Number($("purchaseQty").value),valor_total:$("purchaseValue").value?Number($("purchaseValue").value):null,fornecedor:$("purchaseSupplier").value.trim()||null,observacoes:$("purchaseNotes").value.trim()||null};
-  try{await db("compras_cartuchos",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)});toast("Entrada registrada. Estoque atualizado.");e.currentTarget.reset();$("purchaseDate").value=isoToday();$("purchaseQty").value=1;await loadData(false);showPage("estoque")}catch(err){toast(err.message,"error")}finally{setBusy(e.currentTarget,false)}
+  try{
+    await db("compras_cartuchos",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)});
+    setBusy(e.currentTarget,false);toast("Entrada registrada com sucesso.");
+    e.currentTarget.reset();$("purchaseDate").value=isoToday();$("purchaseQty").value=1;
+    loadData(false).then(()=>showPage("estoque")).catch(err=>{toast("A entrada foi salva, mas o estoque não atualizou na tela.","error");console.error(err)});
+  }catch(err){
+    const message=err.message||"Não foi possível registrar a entrada.";
+    $("purchaseError").textContent=`Erro do Supabase: ${message}`;$("purchaseError").hidden=false;toast(message,"error");
+  }finally{setBusy(e.currentTarget,false)}
 }
 function editSale(id){
   const s=state.sales.find(x=>x.id===id);if(!s)return;
