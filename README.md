@@ -34,3 +34,5 @@ O registro de entrada de estoque solicita somente data, cartucho e quantidade.
 O painel inclui distribuição geral por gênero, com Mulher em rosa e Homem em azul. A duração do atendimento é preenchida em campos separados de horas e minutos para funcionar corretamente no teclado numérico de celulares.
 
 O gráfico mensal exibe o faturamento acima de cada barra e usa alturas proporcionais. A distribuição por cidade usa degradês próprios para Jacobina (verde), Umburanas (azul) e Ourolândia (amarelo). A área de formas de pagamento mostra percentual e quantidade de pagamentos em um painel mais compacto.
+
+Os arquivos de estilo e script usam identificação de versão para impedir que o navegador mantenha uma visualização antiga após a publicação de uma atualização.
