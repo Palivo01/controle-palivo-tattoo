@@ -15,6 +15,8 @@ const NON_REVENUE_PAYMENTS = new Set(["Permuta","Cortesia","Retoque"]);
 const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], deleteId:null, purchaseDeleteId:null };
 const $ = (id) => document.getElementById(id);
 const money = (n) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(n)||0);
+const compactMoney = (n) => safeNumber(n)>=1000?`R$ ${(safeNumber(n)/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})} mil`:`R$ ${safeNumber(n).toLocaleString("pt-BR",{maximumFractionDigits:0})}`;
+const shortMoney = (n) => safeNumber(n)>=1000?`${(safeNumber(n)/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})}k`:safeNumber(n).toLocaleString("pt-BR",{maximumFractionDigits:0});
 const isoToday = () => new Date().toISOString().slice(0,10);
 const esc = (v="") => String(v).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const formatDate = (v) => v ? new Date(`${v}T12:00:00`).toLocaleDateString("pt-BR") : "—";
@@ -168,26 +170,34 @@ function renderDashboard(){
   const rows=filteredSales(),genderRows=filteredSales(true),paidRows=rows.filter(s=>!NON_REVENUE_PAYMENTS.has(s.forma_pagamento)),revenue=paidRows.reduce((a,s)=>a+safeNumber(s.valor),0),mins=rows.reduce((a,s)=>a+safeNumber(s.duracao_minutos),0);
   $("metricRevenue").textContent=money(revenue); $("metricCount").textContent=rows.length; $("metricTicket").textContent=money(paidRows.length?revenue/paidRows.length:0); $("metricHours").textContent=duration(mins);
   const monthly=Array(12).fill(0); paidRows.forEach(s=>{const month=new Date(`${s.data_atendimento}T12:00:00`).getMonth();if(month>=0&&month<12)monthly[month]+=safeNumber(s.valor)});
-  const max=Math.max(...monthly,1); $("monthlyChart").innerHTML=monthly.map((v,i)=>`<div class="month-bar-wrap"><div class="month-bar-area"><div class="month-bar" style="--bar-scale:${v?Math.max(v/max,.025):.01}" data-value="${money(v)}"></div></div><span class="month-label">${MONTHS[i]}</span></div>`).join("");
-  renderBars("cityChart",groupSum(paidRows,"cidade"),revenue);
+  const max=Math.max(...monthly,1); $("monthlyChart").innerHTML=monthly.map((v,i)=>{const height=v?Math.max(Math.round(v/max*150),5):2;return `<div class="month-bar-wrap"><div class="month-bar-area"><div class="month-bar-stack"><span class="month-value" title="${money(v)}"><span class="month-value-full">${compactMoney(v)}</span><span class="month-value-short">${shortMoney(v)}</span></span><div class="month-bar" style="height:${height}px" title="${money(v)}"></div></div></div><span class="month-label">${MONTHS[i]}</span></div>`}).join("");
+  renderCityBars(groupSum(paidRows,"cidade"),revenue);
   renderGenderDistribution(genderRows);
-  renderDonut(groupSum(paidRows,"forma_pagamento"),revenue);
+  renderPaymentDonut(paidRows);
   $("recentSales").innerHTML=rows.slice(0,5).map(s=>`<div class="recent-item"><div><p>${esc(s.cliente)}</p><small>${formatDate(s.data_atendimento)} · ${esc(s.cidade)}</small></div><strong>${money(s.valor)}</strong></div>`).join("")||'<div class="empty">Nenhuma venda neste filtro.</div>';
 }
 function renderGenderDistribution(rows){
   const total=rows.length;
   const counts=rows.reduce((items,row)=>{const gender=row.genero||"Não informado";items[gender]=(items[gender]||0)+1;return items},{});
-  const order=["Mulher","Homem","Não informado"],colors={Mulher:"#ef77ad",Homem:"#5ca9ef","Não informado":"#8f8f8f"};
-  $("genderChart").innerHTML=total?order.filter(name=>counts[name]).map(name=>{const percent=counts[name]/total*100;return `<div class="bar-row gender-row"><span><i class="dot" style="background:${colors[name]}"></i>${name}</span><div class="bar-track"><div class="bar-fill" style="width:${percent}%;background:${colors[name]}"></div></div><span class="bar-value">${Math.round(percent)}% · ${counts[name]}</span></div>`}).join(""):'<div class="empty">Sem dados de gênero.</div>';
+  const order=["Mulher","Homem","Não informado"],classes={Mulher:"woman",Homem:"man","Não informado":"unknown"};
+  $("genderChart").innerHTML=total?order.filter(name=>counts[name]).map(name=>{const percent=counts[name]/total*100;const colorClass=classes[name];return `<div class="bar-row gender-row ${colorClass}"><span><i class="dot"></i>${name}</span><div class="bar-track"><div class="bar-fill" style="width:${percent}%"></div></div><span class="bar-value">${Math.round(percent)}% · ${counts[name]}</span></div>`}).join(""):'<div class="empty">Sem dados de gênero.</div>';
 }
-function groupSum(rows,key){return Object.entries(rows.reduce((a,s)=>{const k=s[key]||"Não informado";a[k]=(a[k]||0)+Number(s.valor);return a},{})).sort((a,b)=>b[1]-a[1])}
-function renderBars(id,items,total){
-  $(id).innerHTML=items.slice(0,6).map(([name,val])=>`<div class="bar-row"><span>${esc(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${total?val/total*100:0}%"></div></div><span class="bar-value">${money(val)}</span></div>`).join("")||'<div class="empty">Sem dados.</div>';
+function groupSum(rows,key){return Object.entries(rows.reduce((a,s)=>{const k=s[key]||"Não informado";a[k]=(a[k]||0)+safeNumber(s.valor);return a},{})).sort((a,b)=>b[1]-a[1])}
+function cityColorClass(name){
+  const normalized=String(name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  if(normalized==="jacobina")return "city-jacobina";
+  if(normalized==="umburanas")return "city-umburanas";
+  if(normalized==="ourolandia")return "city-ourolandia";
+  return "city-other";
 }
-function renderDonut(items,total){
+function renderCityBars(items,total){
+  $("cityChart").innerHTML=items.slice(0,6).map(([name,val])=>`<div class="bar-row ${cityColorClass(name)}"><span>${esc(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${total?val/total*100:0}%"></div></div><span class="bar-value">${money(val)}</span></div>`).join("")||'<div class="empty">Sem dados.</div>';
+}
+function renderPaymentDonut(rows){
+  const items=Object.entries(rows.reduce((counts,row)=>{const method=row.forma_pagamento||"Não informado";counts[method]=(counts[method]||0)+1;return counts},{})).sort((a,b)=>b[1]-a[1]),total=rows.length;
   if(!total){$("paymentChart").innerHTML='<div class="empty">Sem dados.</div>';return}
-  let pos=0;const parts=items.map(([,v],i)=>{const start=pos;pos+=v/total*100;return `${PAYMENT_COLORS[i%PAYMENT_COLORS.length]} ${start}% ${pos}%`});
-  $("paymentChart").innerHTML=`<div class="donut" style="background:conic-gradient(${parts.join(",")})"></div><div class="legend">${items.slice(0,6).map(([n,v],i)=>`<div class="legend-row"><span><i class="dot" style="background:${PAYMENT_COLORS[i%PAYMENT_COLORS.length]}"></i>${esc(n)}</span><b>${Math.round(v/total*100)}%</b></div>`).join("")}</div>`;
+  let pos=0;const parts=items.map(([,count],i)=>{const start=pos;pos+=count/total*100;return `${PAYMENT_COLORS[i%PAYMENT_COLORS.length]} ${start}% ${pos}%`});
+  $("paymentChart").innerHTML=`<div class="donut" style="background:conic-gradient(${parts.join(",")})"></div><div class="legend">${items.slice(0,6).map(([name,count],i)=>`<div class="legend-row"><span><i class="dot" style="background:${PAYMENT_COLORS[i%PAYMENT_COLORS.length]}"></i>${esc(name)}</span><b>${Math.round(count/total*100)}% <small>${count} ${count===1?"pagamento":"pagamentos"}</small></b></div>`).join("")}</div>`;
 }
 function renderSales(){
   const q=$("salesSearch").value.toLowerCase().trim();
