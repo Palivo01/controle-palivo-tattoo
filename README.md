@@ -30,3 +30,5 @@ Os cartuchos aparecem organizados pelas famílias RL, RM e RS, sempre em ordem n
 Todos os cartuchos começam com saldo zero. O saldo é calculado pelas entradas registradas menos o consumo nas vendas, sem permitir valor negativo. Entradas lançadas por engano podem ser excluídas no histórico, e o saldo é recalculado imediatamente. Os alertas de estoque são: Excelente (20 ou mais), Disponível (10–19), Pouco (5–9), Acabando (1–4) e Não há (zero).
 
 O registro de entrada de estoque solicita somente data, cartucho e quantidade.
+
+O painel inclui distribuição geral por gênero, com Mulher em rosa e Homem em azul. A duração do atendimento é preenchida em campos separados de horas e minutos para funcionar corretamente no teclado numérico de celulares.

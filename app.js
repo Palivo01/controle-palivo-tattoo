@@ -20,10 +20,10 @@ const esc = (v="") => String(v).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;","
 const formatDate = (v) => v ? new Date(`${v}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 const duration = (mins=0) => `${Math.floor(mins/60)}h${mins%60 ? ` ${mins%60}min` : ""}`;
 const durationInput = (mins=0) => `${Math.floor(Number(mins||0)/60)}:${String(Number(mins||0)%60).padStart(2,"0")}`;
-function parseDuration(value){
-  const match=String(value).trim().match(/^(\d{1,2}):([0-5]\d)$/);
-  if(!match)throw new Error("Informe a duração no formato horas:minutos. Exemplo: 1:35");
-  return Number(match[1])*60+Number(match[2]);
+function readDuration(){
+  const hours=Number($("saleDurationHours").value),minutes=Number($("saleDurationMinutes").value);
+  if(!Number.isInteger(hours)||hours<0||hours>24||!Number.isInteger(minutes)||minutes<0||minutes>59)throw new Error("Informe horas entre 0 e 24 e minutos entre 0 e 59.");
+  return hours*60+minutes;
 }
 function cartridgeOrder(item){
   const match=String(item.nome||item).toUpperCase().match(/^(\d+)\s*(RL|RM|RS)$/);
@@ -150,7 +150,7 @@ function setupFilters(){
   fill("filterCity",[...new Set(state.sales.map(s=>s.cidade).filter(Boolean))].sort());
   fill("filterPayment",[...new Set(state.sales.map(s=>s.forma_pagamento).filter(Boolean))].sort());
 }
-function filteredSales(){
+function filteredSales(ignoreGender=false){
   const year=Number($("filterYear").value),period=$("filterPeriod").value,month=Number($("filterMonth").value);
   const ranges={s1:[1,6],s2:[7,12],q1:[1,3],q2:[4,6],q3:[7,9],q4:[10,12]};
   return state.sales.filter(s=>{
@@ -160,18 +160,25 @@ function filteredSales(){
     if(ranges[period]&&(m<ranges[period][0]||m>ranges[period][1]))return false;
     if($("filterCity").value!=="all"&&s.cidade!==$("filterCity").value)return false;
     if($("filterPayment").value!=="all"&&s.forma_pagamento!==$("filterPayment").value)return false;
-    if($("filterGender").value!=="all"&&(s.genero||"Não informado")!==$("filterGender").value)return false;
+    if(!ignoreGender&&$("filterGender").value!=="all"&&(s.genero||"Não informado")!==$("filterGender").value)return false;
     return true;
   });
 }
 function renderDashboard(){
-  const rows=filteredSales(),paidRows=rows.filter(s=>!NON_REVENUE_PAYMENTS.has(s.forma_pagamento)),revenue=paidRows.reduce((a,s)=>a+Number(s.valor),0),mins=rows.reduce((a,s)=>a+Number(s.duracao_minutos||0),0);
+  const rows=filteredSales(),genderRows=filteredSales(true),paidRows=rows.filter(s=>!NON_REVENUE_PAYMENTS.has(s.forma_pagamento)),revenue=paidRows.reduce((a,s)=>a+safeNumber(s.valor),0),mins=rows.reduce((a,s)=>a+safeNumber(s.duracao_minutos),0);
   $("metricRevenue").textContent=money(revenue); $("metricCount").textContent=rows.length; $("metricTicket").textContent=money(paidRows.length?revenue/paidRows.length:0); $("metricHours").textContent=duration(mins);
-  const monthly=Array(12).fill(0); paidRows.forEach(s=>monthly[new Date(`${s.data_atendimento}T12:00:00`).getMonth()]+=Number(s.valor));
-  const max=Math.max(...monthly,1); $("monthlyChart").innerHTML=monthly.map((v,i)=>`<div class="month-bar-wrap"><div class="month-bar" style="height:${Math.max(v/max*90,v?4:1)}%" data-value="${money(v)}"></div><span class="month-label">${MONTHS[i]}</span></div>`).join("");
+  const monthly=Array(12).fill(0); paidRows.forEach(s=>{const month=new Date(`${s.data_atendimento}T12:00:00`).getMonth();if(month>=0&&month<12)monthly[month]+=safeNumber(s.valor)});
+  const max=Math.max(...monthly,1); $("monthlyChart").innerHTML=monthly.map((v,i)=>`<div class="month-bar-wrap"><div class="month-bar-area"><div class="month-bar" style="--bar-scale:${v?Math.max(v/max,.025):.01}" data-value="${money(v)}"></div></div><span class="month-label">${MONTHS[i]}</span></div>`).join("");
   renderBars("cityChart",groupSum(paidRows,"cidade"),revenue);
+  renderGenderDistribution(genderRows);
   renderDonut(groupSum(paidRows,"forma_pagamento"),revenue);
   $("recentSales").innerHTML=rows.slice(0,5).map(s=>`<div class="recent-item"><div><p>${esc(s.cliente)}</p><small>${formatDate(s.data_atendimento)} · ${esc(s.cidade)}</small></div><strong>${money(s.valor)}</strong></div>`).join("")||'<div class="empty">Nenhuma venda neste filtro.</div>';
+}
+function renderGenderDistribution(rows){
+  const total=rows.length;
+  const counts=rows.reduce((items,row)=>{const gender=row.genero||"Não informado";items[gender]=(items[gender]||0)+1;return items},{});
+  const order=["Mulher","Homem","Não informado"],colors={Mulher:"#ef77ad",Homem:"#5ca9ef","Não informado":"#8f8f8f"};
+  $("genderChart").innerHTML=total?order.filter(name=>counts[name]).map(name=>{const percent=counts[name]/total*100;return `<div class="bar-row gender-row"><span><i class="dot" style="background:${colors[name]}"></i>${name}</span><div class="bar-track"><div class="bar-fill" style="width:${percent}%;background:${colors[name]}"></div></div><span class="bar-value">${Math.round(percent)}% · ${counts[name]}</span></div>`}).join(""):'<div class="empty">Sem dados de gênero.</div>';
 }
 function groupSum(rows,key){return Object.entries(rows.reduce((a,s)=>{const k=s[key]||"Não informado";a[k]=(a[k]||0)+Number(s.valor);return a},{})).sort((a,b)=>b[1]-a[1])}
 function renderBars(id,items,total){
@@ -213,12 +220,12 @@ function addCartridgeRow(cartuchoId="",quantidade=1){
   row.querySelector(".remove-row").onclick=()=>row.remove();
 }
 function resetSaleForm(){
-  $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleDuration").value="0:30";$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;
+  $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;
 }
 async function saveSale(e){
   e.preventDefault();const form=e.currentTarget;setBusy(form,true);
   const id=$("saleId").value;
-  let durationMinutes;try{durationMinutes=parseDuration($("saleDuration").value)}catch(error){toast(error.message,"error");setBusy(form,false);return}
+  let durationMinutes;try{durationMinutes=readDuration()}catch(error){toast(error.message,"error");setBusy(form,false);return}
   const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente:$("saleClient").value.trim(),genero:$("saleGender").value,cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,observacoes:$("saleNotes").value.trim()||null};
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
@@ -253,7 +260,7 @@ async function savePurchase(e){
 }
 function editSale(id){
   const s=state.sales.find(x=>x.id===id);if(!s)return;
-  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente;$("saleGender").value=s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDuration").value=durationInput(s.duracao_minutos);$("saleNotes").value=s.observacoes||"";
+  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente;$("saleGender").value=s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";
   $("cartridgeRows").innerHTML="";state.usages.filter(u=>u.venda_id===id).forEach(u=>addCartridgeRow(u.cartucho_id,u.quantidade));if(!$("cartridgeRows").children.length)addCartridgeRow();
   $("saleFormTitle").textContent="Editar venda";$("cancelEdit").hidden=false;showPage("nova-venda");window.scrollTo({top:0,behavior:"smooth"});
 }

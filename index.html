@@ -70,7 +70,7 @@
 
         <div class="dashboard-grid">
           <article class="panel chart-panel"><div class="panel-head"><div><small>FATURAMENTO</small><h3>Vendas por mês</h3></div></div><div id="monthlyChart" class="chart"></div></article>
-          <article class="panel"><div class="panel-head"><div><small>DISTRIBUIÇÃO</small><h3>Por cidade</h3></div></div><div id="cityChart" class="bar-list"></div></article>
+          <article class="panel distribution-panel"><div class="panel-head"><div><small>DISTRIBUIÇÃO</small><h3>Por cidade</h3></div></div><div id="cityChart" class="bar-list"></div><div class="distribution-divider"></div><div class="panel-head gender-head"><div><small>PORCENTAGEM GERAL</small><h3>Por gênero</h3></div></div><div id="genderChart" class="bar-list gender-chart"></div></article>
           <article class="panel"><div class="panel-head"><div><small>FORMA DE PAGAMENTO</small><h3>Como recebeu</h3></div></div><div id="paymentChart" class="donut-wrap"></div></article>
           <article class="panel"><div class="panel-head"><div><small>ÚLTIMOS REGISTROS</small><h3>Vendas recentes</h3></div><button class="text-btn" data-page-link="vendas">Ver todas</button></div><div id="recentSales" class="recent-list"></div></article>
         </div>
@@ -87,7 +87,7 @@
             <label>Cidade<input id="saleCity" type="text" list="citiesList" placeholder="Ex.: Umburanas" required><datalist id="citiesList"><option value="Umburanas"><option value="Jacobina"><option value="Ourolândia"></datalist></label>
             <label>Valor (R$)<input id="saleValue" type="number" min="0" step="0.01" placeholder="350,00" required></label>
             <label>Forma de pagamento<select id="salePayment" required><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Permuta</option><option>Cortesia</option><option>Retoque</option></select></label>
-            <label>Duração da tatuagem<input id="saleDuration" type="text" inputmode="numeric" placeholder="Ex.: 1:35" value="0:30" pattern="[0-9]{1,2}:[0-5][0-9]" title="Use o formato horas:minutos. Exemplo: 1:35" required></label>
+            <fieldset class="duration-field"><legend>Duração da tatuagem</legend><div class="duration-inputs"><label><span>Horas</span><input id="saleDurationHours" type="number" inputmode="numeric" min="0" max="24" value="0" required></label><b aria-hidden="true">:</b><label><span>Minutos</span><input id="saleDurationMinutes" type="number" inputmode="numeric" min="0" max="59" value="30" required></label></div></fieldset>
           </div>
           <div class="form-section-head"><div><small>MATERIAL UTILIZADO</small><h3>Cartuchos</h3></div><button id="addCartridgeRow" class="btn small ghost" type="button">＋ Adicionar</button></div>
           <div id="cartridgeRows" class="cartridge-rows"></div>
