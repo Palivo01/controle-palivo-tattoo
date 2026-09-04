@@ -36,3 +36,5 @@ O painel inclui distribuição geral por gênero, com Mulher em rosa e Homem em 
 O gráfico mensal exibe o faturamento acima de cada barra e usa alturas proporcionais. A distribuição por cidade usa degradês próprios para Jacobina (verde), Umburanas (azul) e Ourolândia (amarelo). A área de formas de pagamento mostra percentual e quantidade de pagamentos em um painel mais compacto.
 
 Os arquivos de estilo e script usam identificação de versão para impedir que o navegador mantenha uma visualização antiga após a publicação de uma atualização.
+
+A política de segurança permite os estilos proporcionais gerados pelo próprio painel para alturas e larguras de gráficos, mantendo scripts restritos aos arquivos do site.
