@@ -12,7 +12,7 @@ const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov
 const PAYMENT_COLORS = ["#c6a15b","#e5ca8e","#9b7a42","#746247","#a7a49d","#66502d","#dfcda5","#775e31"];
 const NON_REVENUE_PAYMENTS = new Set(["Permuta","Cortesia"]);
 
-const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], deleteId:null };
+const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], deleteId:null, purchaseDeleteId:null };
 const $ = (id) => document.getElementById(id);
 const money = (n) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(n)||0);
 const isoToday = () => new Date().toISOString().slice(0,10);
@@ -110,8 +110,28 @@ async function loadData(showError=true){
       db("compras_cartuchos?select=*&order=data_compra.desc,criado_em.desc"),
       db("estoque_atual?select=*&order=nome")
     ]);
-    Object.assign(state,{sales,usages,purchases,stock}); renderAll();
+    Object.assign(state,{sales,usages,purchases,stock:normalizeStock(stock,purchases,usages)}); renderAll();
   }catch(e){if(showError)toast(e.message,"error");throw e}
+}
+function safeNumber(value){
+  const parsed=Number(value);
+  return Number.isFinite(parsed)?parsed:0;
+}
+function normalizeStock(stockRows,purchases,usages){
+  const purchaseTotals=purchases.reduce((totals,item)=>{
+    totals[item.cartucho_id]=(totals[item.cartucho_id]||0)+safeNumber(item.quantidade);
+    return totals;
+  },{});
+  const usageTotals=usages.reduce((totals,item)=>{
+    totals[item.cartucho_id]=(totals[item.cartucho_id]||0)+safeNumber(item.quantidade);
+    return totals;
+  },{});
+  const stockByCartridge=Object.fromEntries(stockRows.map(item=>[item.cartucho_id||item.id,item]));
+  return state.cartridges.map(cartridge=>({
+    ...(stockByCartridge[cartridge.id]||{}),
+    ...cartridge,
+    quantidade_atual:safeNumber(cartridge.estoque_inicial)+safeNumber(purchaseTotals[cartridge.id])-safeNumber(usageTotals[cartridge.id])
+  }));
 }
 async function startApp(){
   $("loginView").hidden=true; $("appView").hidden=false;
@@ -168,16 +188,16 @@ function renderSales(){
   $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span></div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar">✎</button><button data-delete="${s.id}" class="delete" title="Excluir">×</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';
 }
 function renderStock(){
-  const low=state.stock.filter(s=>Number(s.quantidade_atual)<=Number(s.estoque_minimo)).length;
-  $("stockSummary").textContent=`${state.stock.length} tipos cadastrados · ${low?`${low} precisam de reposição`:"todos com estoque regular"}`;
+  const low=state.stock.filter(s=>safeNumber(s.quantidade_atual)<10).length;
+  $("stockSummary").textContent=`${state.stock.length} tipos cadastrados · ${low?`${low} com estoque baixo`:"todos com bom estoque"}`;
   const groups={RL:[],RM:[],RS:[]};
   [...state.stock].sort(sortCartridges).forEach(s=>{const family=String(s.nome).toUpperCase().match(/(RL|RM|RS)$/)?.[1];if(family)groups[family].push(s)});
   const labels={RL:"Traço",RM:"Magnum",RS:"Round Shader"};
-  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const isLow=Number(s.quantidade_atual)<=Number(s.estoque_minimo);return `<article class="stock-card ${isLow?"low":""}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${Number(s.quantidade_atual)}</div><small>unidades disponíveis</small><br><span class="status ${isLow?"low":""}">${isLow?"COMPRAR":"DISPONÍVEL"}</span></article>`}).join("")}</div></section>`).join("");
+  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":"ending";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO"}[level];return `<article class="stock-card ${level}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>unidades disponíveis</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span></article>`}).join("")}</div></section>`).join("");
 }
 function renderPurchases(){
   const byId=Object.fromEntries(state.cartridges.map(c=>[c.id,c.nome]));
-  $("purchaseList").innerHTML=state.purchases.slice(0,10).map(p=>`<div class="recent-item"><div><p>${esc(byId[p.cartucho_id]||"Cartucho")}: +${p.quantidade}</p><small>${formatDate(p.data_compra)}${p.fornecedor?` · ${esc(p.fornecedor)}`:""}</small></div><strong>${p.valor_total==null?"—":money(p.valor_total)}</strong></div>`).join("")||'<div class="empty">Nenhuma entrada registrada.</div>';
+  $("purchaseList").innerHTML=state.purchases.slice(0,10).map(p=>`<div class="recent-item"><div><p>${esc(byId[p.cartucho_id]||"Cartucho")}: +${safeNumber(p.quantidade)}</p><small>${formatDate(p.data_compra)}${p.fornecedor?` · ${esc(p.fornecedor)}`:""}</small></div><div class="purchase-actions"><strong>${p.valor_total==null?"—":money(p.valor_total)}</strong><button type="button" data-delete-purchase="${p.id}" class="icon-delete" title="Excluir entrada" aria-label="Excluir entrada de ${esc(byId[p.cartucho_id]||"cartucho")}">×</button></div></div>`).join("")||'<div class="empty">Nenhuma entrada registrada.</div>';
 }
 function renderSelects(){
   const opts='<option value="">Selecione</option>'+[...state.cartridges].sort(sortCartridges).map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join("");
@@ -241,6 +261,15 @@ async function deleteSale(){
   if(!state.deleteId)return;
   try{await db(`vendas?id=eq.${state.deleteId}`,{method:"DELETE",headers:{Prefer:"return=minimal"}});toast("Venda excluída.");$("confirmDialog").close();state.deleteId=null;await loadData(false)}catch(e){toast(e.message,"error")}
 }
+async function deletePurchase(){
+  if(!state.purchaseDeleteId)return;
+  const button=$("confirmPurchaseDelete");button.disabled=true;button.textContent="Excluindo...";
+  try{
+    await db(`compras_cartuchos?id=eq.${state.purchaseDeleteId}`,{method:"DELETE",headers:{Prefer:"return=minimal"}});
+    toast("Entrada excluída e saldo atualizado.");$("purchaseDeleteDialog").close();state.purchaseDeleteId=null;await loadData(false);
+  }catch(e){toast(e.message,"error")}
+  finally{button.disabled=false;button.textContent="Excluir entrada"}
+}
 function showPage(name){
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===`page-${name}`));
   document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===name));
@@ -259,6 +288,8 @@ function bindEvents(){
   $("salesSearch").oninput=renderSales;
   $("salesList").onclick=e=>{const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");if(edit)editSale(edit.dataset.edit);if(del){state.deleteId=del.dataset.delete;$("confirmDialog").showModal()}};
   $("cancelDelete").onclick=()=>$("confirmDialog").close();$("confirmDelete").onclick=deleteSale;
+  $("purchaseList").onclick=e=>{const button=e.target.closest("[data-delete-purchase]");if(!button)return;state.purchaseDeleteId=button.dataset.deletePurchase;$("purchaseDeleteDialog").showModal()};
+  $("cancelPurchaseDelete").onclick=()=>$("purchaseDeleteDialog").close();$("confirmPurchaseDelete").onclick=deletePurchase;
   $("toggleFilters").onclick=()=>$("filterPanel").classList.toggle("open");
   ["filterYear","filterPeriod","filterMonth","filterCity","filterPayment","filterGender"].forEach(id=>$(id).onchange=()=>{$("monthFilterWrap").hidden=$("filterPeriod").value!=="month";renderDashboard()});
   $("clearFilters").onclick=()=>{$("filterYear").value=String(new Date().getFullYear());$("filterPeriod").value="all";$("filterCity").value="all";$("filterPayment").value="all";$("filterGender").value="all";$("monthFilterWrap").hidden=true;renderDashboard()};
