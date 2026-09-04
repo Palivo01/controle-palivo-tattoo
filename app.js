@@ -25,8 +25,15 @@ function toast(message,type="ok"){
 }
 function setBusy(form,busy){
   const btn=form.querySelector('button[type="submit"]'); if(!btn)return;
-  if(busy){btn.dataset.label=btn.textContent;btn.textContent="Salvando..."}else btn.textContent=btn.dataset.label||btn.textContent;
+  if(busy){btn.dataset.label=btn.textContent;btn.textContent=btn.dataset.busyLabel||"Salvando..."}else btn.textContent=btn.dataset.label||btn.textContent;
   btn.disabled=busy;
+}
+async function fetchWithTimeout(url,options={},milliseconds=15000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),milliseconds);
+  try{return await fetch(url,{...options,signal:controller.signal})}
+  catch(error){if(error.name==="AbortError")throw new Error("O Supabase demorou para responder. Tente novamente.");throw error}
+  finally{clearTimeout(timer)}
 }
 function saveSession(session){
   if(session){session.saved_at=Date.now(); localStorage.setItem(SESSION_KEY,JSON.stringify(session));}
@@ -36,7 +43,7 @@ function saveSession(session){
 function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY))}catch{return null}}
 
 async function authFetch(path,options={}){
-  const res=await fetch(`${SUPABASE_URL}/auth/v1${path}`,{
+  const res=await fetchWithTimeout(`${SUPABASE_URL}/auth/v1${path}`,{
     ...options,headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json",...(options.headers||{})}
   });
   const data=await res.json().catch(()=>({}));
@@ -56,7 +63,7 @@ async function ensureToken(){
 }
 async function db(path,options={},retry=true){
   const token=await ensureToken();
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
+  const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/${path}`,{
     ...options,headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,"Content-Type":"application/json",...(options.headers||{})}
   });
   if(res.status===401&&retry){await refreshSession();return db(path,options,false)}
@@ -67,7 +74,8 @@ async function db(path,options={},retry=true){
 
 async function login(email,password){
   const session=await authFetch("/token?grant_type=password",{method:"POST",body:JSON.stringify({email,password})});
-  saveSession(session); state.user=session.user; await startApp();
+  saveSession(session); state.user=session.user;
+  startApp().catch(error=>toast(error.message,"error"));
 }
 async function logout(){
   try{if(state.session)await authFetch("/logout",{method:"POST",headers:{Authorization:`Bearer ${state.session.access_token}`}})}catch{}
@@ -211,7 +219,7 @@ function showPage(name){
 }
 
 function bindEvents(){
-  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();setBusy(e.currentTarget,true);try{await login($("loginEmail").value,$("loginPassword").value)}catch(err){toast("E-mail ou senha inválidos.","error")}finally{setBusy(e.currentTarget,false)}});
+  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();setBusy(e.currentTarget,true);try{await login($("loginEmail").value,$("loginPassword").value)}catch(err){toast(err.message||"Não foi possível entrar.","error")}finally{setBusy(e.currentTarget,false)}});
   $("logoutBtn").onclick=$("mobileLogout").onclick=logout;
   document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
   document.querySelectorAll("[data-page-link]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageLink));
