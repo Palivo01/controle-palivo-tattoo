@@ -24,3 +24,5 @@ Nunca coloque no projeto a senha do banco nem uma chave `service_role`.
 ## Uso
 
 Entre com o usuário criado em **Supabase → Authentication → Users**. No primeiro acesso, o sistema cadastra os tipos de cartucho padrão. Cadastre compras para aumentar o estoque e informe os cartuchos usados em cada venda para dar baixa automática.
+
+Os cartuchos aparecem organizados pelas famílias RL, RM e RS, sempre em ordem numérica. Vendas marcadas como Permuta ou Cortesia permanecem no histórico de atendimentos, mas não entram no faturamento nem no ticket médio.

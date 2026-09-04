@@ -86,9 +86,8 @@
             <label>Gênero<select id="saleGender" required><option value="">Selecione</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label>
             <label>Cidade<input id="saleCity" type="text" list="citiesList" placeholder="Ex.: Umburanas" required><datalist id="citiesList"><option value="Umburanas"><option value="Jacobina"><option value="Ourolândia"></datalist></label>
             <label>Valor (R$)<input id="saleValue" type="number" min="0" step="0.01" placeholder="350,00" required></label>
-            <label>Forma de pagamento<select id="salePayment" required><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Transferência</option><option>Permuta</option><option>Cortesia</option><option>Outro</option></select></label>
-            <label>Duração — horas<input id="saleHours" type="number" min="0" max="24" value="0"></label>
-            <label>Duração — minutos<input id="saleMinutes" type="number" min="0" max="59" value="30"></label>
+            <label>Forma de pagamento<select id="salePayment" required><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Transferência</option><option>Permuta</option><option>Cortesia</option></select></label>
+            <label>Duração da tatuagem<input id="saleDuration" type="text" inputmode="numeric" placeholder="Ex.: 1:35" value="0:30" pattern="[0-9]{1,2}:[0-5][0-9]" title="Use o formato horas:minutos. Exemplo: 1:35" required></label>
           </div>
           <div class="form-section-head"><div><small>MATERIAL UTILIZADO</small><h3>Cartuchos</h3></div><button id="addCartridgeRow" class="btn small ghost" type="button">＋ Adicionar</button></div>
           <div id="cartridgeRows" class="cartridge-rows"></div>
@@ -106,7 +105,7 @@
       <section id="page-estoque" class="page">
         <div class="page-head"><div><p class="eyebrow">MATERIAIS</p><h2>Estoque de cartuchos</h2><p class="muted">As saídas são calculadas automaticamente pelas vendas.</p></div><button class="btn primary" data-page-link="compras">＋ Registrar entrada</button></div>
         <div id="stockSummary" class="stock-summary"></div>
-        <div id="stockGrid" class="stock-grid"></div>
+        <div id="stockGrid"></div>
       </section>
 
       <section id="page-compras" class="page">

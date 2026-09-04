@@ -10,6 +10,7 @@ const DEFAULT_CARTRIDGES = [
 ];
 const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const PAYMENT_COLORS = ["#c6a15b","#e5ca8e","#9b7a42","#746247","#a7a49d","#66502d","#dfcda5","#775e31"];
+const NON_REVENUE_PAYMENTS = new Set(["Permuta","Cortesia"]);
 
 const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], deleteId:null };
 const $ = (id) => document.getElementById(id);
@@ -18,6 +19,18 @@ const isoToday = () => new Date().toISOString().slice(0,10);
 const esc = (v="") => String(v).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const formatDate = (v) => v ? new Date(`${v}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 const duration = (mins=0) => `${Math.floor(mins/60)}h${mins%60 ? ` ${mins%60}min` : ""}`;
+const durationInput = (mins=0) => `${Math.floor(Number(mins||0)/60)}:${String(Number(mins||0)%60).padStart(2,"0")}`;
+function parseDuration(value){
+  const match=String(value).trim().match(/^(\d{1,2}):([0-5]\d)$/);
+  if(!match)throw new Error("Informe a duração no formato horas:minutos. Exemplo: 1:35");
+  return Number(match[1])*60+Number(match[2]);
+}
+function cartridgeOrder(item){
+  const match=String(item.nome||item).toUpperCase().match(/^(\d+)\s*(RL|RM|RS)$/);
+  const family={RL:0,RM:1,RS:2};
+  return match?[family[match[2]],Number(match[1])]:[9,999];
+}
+function sortCartridges(a,b){const x=cartridgeOrder(a),y=cartridgeOrder(b);return x[0]-y[0]||x[1]-y[1]||String(a.nome).localeCompare(String(b.nome))}
 
 function toast(message,type="ok"){
   const el=$("toast"); el.textContent=message; el.className=`toast show ${type}`;
@@ -132,12 +145,12 @@ function filteredSales(){
   });
 }
 function renderDashboard(){
-  const rows=filteredSales(),revenue=rows.reduce((a,s)=>a+Number(s.valor),0),mins=rows.reduce((a,s)=>a+Number(s.duracao_minutos||0),0);
-  $("metricRevenue").textContent=money(revenue); $("metricCount").textContent=rows.length; $("metricTicket").textContent=money(rows.length?revenue/rows.length:0); $("metricHours").textContent=duration(mins);
-  const monthly=Array(12).fill(0); rows.forEach(s=>monthly[new Date(`${s.data_atendimento}T12:00:00`).getMonth()]+=Number(s.valor));
+  const rows=filteredSales(),paidRows=rows.filter(s=>!NON_REVENUE_PAYMENTS.has(s.forma_pagamento)),revenue=paidRows.reduce((a,s)=>a+Number(s.valor),0),mins=rows.reduce((a,s)=>a+Number(s.duracao_minutos||0),0);
+  $("metricRevenue").textContent=money(revenue); $("metricCount").textContent=rows.length; $("metricTicket").textContent=money(paidRows.length?revenue/paidRows.length:0); $("metricHours").textContent=duration(mins);
+  const monthly=Array(12).fill(0); paidRows.forEach(s=>monthly[new Date(`${s.data_atendimento}T12:00:00`).getMonth()]+=Number(s.valor));
   const max=Math.max(...monthly,1); $("monthlyChart").innerHTML=monthly.map((v,i)=>`<div class="month-bar-wrap"><div class="month-bar" style="height:${Math.max(v/max*90,v?4:1)}%" data-value="${money(v)}"></div><span class="month-label">${MONTHS[i]}</span></div>`).join("");
-  renderBars("cityChart",groupSum(rows,"cidade"),revenue);
-  renderDonut(groupSum(rows,"forma_pagamento"),revenue);
+  renderBars("cityChart",groupSum(paidRows,"cidade"),revenue);
+  renderDonut(groupSum(paidRows,"forma_pagamento"),revenue);
   $("recentSales").innerHTML=rows.slice(0,5).map(s=>`<div class="recent-item"><div><p>${esc(s.cliente)}</p><small>${formatDate(s.data_atendimento)} · ${esc(s.cidade)}</small></div><strong>${money(s.valor)}</strong></div>`).join("")||'<div class="empty">Nenhuma venda neste filtro.</div>';
 }
 function groupSum(rows,key){return Object.entries(rows.reduce((a,s)=>{const k=s[key]||"Não informado";a[k]=(a[k]||0)+Number(s.valor);return a},{})).sort((a,b)=>b[1]-a[1])}
@@ -157,14 +170,17 @@ function renderSales(){
 function renderStock(){
   const low=state.stock.filter(s=>Number(s.quantidade_atual)<=Number(s.estoque_minimo)).length;
   $("stockSummary").textContent=`${state.stock.length} tipos cadastrados · ${low?`${low} precisam de reposição`:"todos com estoque regular"}`;
-  $("stockGrid").innerHTML=state.stock.map(s=>{const isLow=Number(s.quantidade_atual)<=Number(s.estoque_minimo);return `<article class="stock-card ${isLow?"low":""}"><p class="eyebrow">CARTUCHO</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${Number(s.quantidade_atual)}</div><small>unidades disponíveis</small><br><span class="status ${isLow?"low":""}">${isLow?"COMPRAR":"DISPONÍVEL"}</span></article>`}).join("");
+  const groups={RL:[],RM:[],RS:[]};
+  [...state.stock].sort(sortCartridges).forEach(s=>{const family=String(s.nome).toUpperCase().match(/(RL|RM|RS)$/)?.[1];if(family)groups[family].push(s)});
+  const labels={RL:"Traço",RM:"Magnum",RS:"Round Shader"};
+  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const isLow=Number(s.quantidade_atual)<=Number(s.estoque_minimo);return `<article class="stock-card ${isLow?"low":""}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${Number(s.quantidade_atual)}</div><small>unidades disponíveis</small><br><span class="status ${isLow?"low":""}">${isLow?"COMPRAR":"DISPONÍVEL"}</span></article>`}).join("")}</div></section>`).join("");
 }
 function renderPurchases(){
   const byId=Object.fromEntries(state.cartridges.map(c=>[c.id,c.nome]));
   $("purchaseList").innerHTML=state.purchases.slice(0,10).map(p=>`<div class="recent-item"><div><p>${esc(byId[p.cartucho_id]||"Cartucho")}: +${p.quantidade}</p><small>${formatDate(p.data_compra)}${p.fornecedor?` · ${esc(p.fornecedor)}`:""}</small></div><strong>${p.valor_total==null?"—":money(p.valor_total)}</strong></div>`).join("")||'<div class="empty">Nenhuma entrada registrada.</div>';
 }
 function renderSelects(){
-  const opts='<option value="">Selecione</option>'+state.cartridges.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join("");
+  const opts='<option value="">Selecione</option>'+[...state.cartridges].sort(sortCartridges).map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join("");
   $("purchaseCartridge").innerHTML=opts;
   document.querySelectorAll(".cartridge-select").forEach(el=>{const v=el.value;el.innerHTML=opts;el.value=v});
 }
@@ -177,12 +193,13 @@ function addCartridgeRow(cartuchoId="",quantidade=1){
   row.querySelector(".remove-row").onclick=()=>row.remove();
 }
 function resetSaleForm(){
-  $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleHours").value=0;$("saleMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;
+  $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleDuration").value="0:30";$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;
 }
 async function saveSale(e){
   e.preventDefault();setBusy(e.currentTarget,true);
   const id=$("saleId").value;
-  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente:$("saleClient").value.trim(),genero:$("saleGender").value,cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:Number($("saleHours").value||0)*60+Number($("saleMinutes").value||0),observacoes:$("saleNotes").value.trim()||null};
+  let durationMinutes;try{durationMinutes=parseDuration($("saleDuration").value)}catch(error){toast(error.message,"error");setBusy(e.currentTarget,false);return}
+  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente:$("saleClient").value.trim(),genero:$("saleGender").value,cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,observacoes:$("saleNotes").value.trim()||null};
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
     let saleId=id;
@@ -203,7 +220,7 @@ async function savePurchase(e){
 }
 function editSale(id){
   const s=state.sales.find(x=>x.id===id);if(!s)return;
-  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente;$("saleGender").value=s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleHours").value=Math.floor((s.duracao_minutos||0)/60);$("saleMinutes").value=(s.duracao_minutos||0)%60;$("saleNotes").value=s.observacoes||"";
+  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente;$("saleGender").value=s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDuration").value=durationInput(s.duracao_minutos);$("saleNotes").value=s.observacoes||"";
   $("cartridgeRows").innerHTML="";state.usages.filter(u=>u.venda_id===id).forEach(u=>addCartridgeRow(u.cartucho_id,u.quantidade));if(!$("cartridgeRows").children.length)addCartridgeRow();
   $("saleFormTitle").textContent="Editar venda";$("cancelEdit").hidden=false;showPage("nova-venda");window.scrollTo({top:0,behavior:"smooth"});
 }
