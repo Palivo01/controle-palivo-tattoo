@@ -196,9 +196,9 @@ function resetSaleForm(){
   $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleDuration").value="0:30";$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;
 }
 async function saveSale(e){
-  e.preventDefault();setBusy(e.currentTarget,true);
+  e.preventDefault();const form=e.currentTarget;setBusy(form,true);
   const id=$("saleId").value;
-  let durationMinutes;try{durationMinutes=parseDuration($("saleDuration").value)}catch(error){toast(error.message,"error");setBusy(e.currentTarget,false);return}
+  let durationMinutes;try{durationMinutes=parseDuration($("saleDuration").value)}catch(error){toast(error.message,"error");setBusy(form,false);return}
   const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente:$("saleClient").value.trim(),genero:$("saleGender").value,cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,observacoes:$("saleNotes").value.trim()||null};
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
@@ -211,20 +211,25 @@ async function saveSale(e){
     }
     if(materials.length)await db("venda_cartuchos",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(materials.map(x=>({...x,user_id:state.user.id,venda_id:saleId})))});
     toast(id?"Venda atualizada.":"Venda salva com sucesso.");resetSaleForm();await loadData(false);showPage("dashboard");
-  }catch(err){toast(err.message,"error")}finally{setBusy(e.currentTarget,false)}
+  }catch(err){toast(err.message,"error")}finally{setBusy(form,false)}
 }
 async function savePurchase(e){
-  e.preventDefault();setBusy(e.currentTarget,true);$("purchaseError").hidden=true;$("purchaseError").textContent="";
+  e.preventDefault();const form=e.currentTarget;setBusy(form,true);$("purchaseError").hidden=true;$("purchaseError").textContent="";
+  const submitButton=form.querySelector('button[type="submit"]');
   const payload={user_id:state.user.id,data_compra:$("purchaseDate").value,cartucho_id:$("purchaseCartridge").value,quantidade:Number($("purchaseQty").value),valor_total:$("purchaseValue").value?Number($("purchaseValue").value):null,fornecedor:$("purchaseSupplier").value.trim()||null,observacoes:$("purchaseNotes").value.trim()||null};
   try{
     await db("compras_cartuchos",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)});
-    setBusy(e.currentTarget,false);toast("Entrada registrada com sucesso.");
-    e.currentTarget.reset();$("purchaseDate").value=isoToday();$("purchaseQty").value=1;
-    loadData(false).then(()=>showPage("estoque")).catch(err=>{toast("A entrada foi salva, mas o estoque não atualizou na tela.","error");console.error(err)});
+    submitButton.textContent="Entrada registrada ✓";submitButton.classList.add("success");toast("Entrada registrada com sucesso.");
+    form.reset();$("purchaseDate").value=isoToday();$("purchaseQty").value=1;
+    setTimeout(()=>{
+      setBusy(form,false);submitButton.classList.remove("success");
+      loadData(false).then(()=>showPage("estoque")).catch(err=>{toast("A entrada foi salva, mas o estoque não atualizou na tela.","error");console.error(err)});
+    },900);
   }catch(err){
     const message=err.message||"Não foi possível registrar a entrada.";
     $("purchaseError").textContent=`Erro do Supabase: ${message}`;$("purchaseError").hidden=false;toast(message,"error");
-  }finally{setBusy(e.currentTarget,false)}
+    setBusy(form,false);submitButton.textContent="Tentar novamente";
+  }
 }
 function editSale(id){
   const s=state.sales.find(x=>x.id===id);if(!s)return;
@@ -244,7 +249,7 @@ function showPage(name){
 }
 
 function bindEvents(){
-  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();setBusy(e.currentTarget,true);try{await login($("loginEmail").value,$("loginPassword").value)}catch(err){toast(err.message||"Não foi possível entrar.","error")}finally{setBusy(e.currentTarget,false)}});
+  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;setBusy(form,true);try{await login($("loginEmail").value,$("loginPassword").value)}catch(err){toast(err.message||"Não foi possível entrar.","error")}finally{setBusy(form,false)}});
   $("logoutBtn").onclick=$("mobileLogout").onclick=logout;
   document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
   document.querySelectorAll("[data-page-link]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageLink));
