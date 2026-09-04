@@ -25,6 +25,8 @@ Nunca coloque no projeto a senha do banco nem uma chave `service_role`.
 
 Entre com o usuário criado em **Supabase → Authentication → Users**. No primeiro acesso, o sistema cadastra os tipos de cartucho padrão. Cadastre compras para aumentar o estoque e informe os cartuchos usados em cada venda para dar baixa automática.
 
-Os cartuchos aparecem organizados pelas famílias RL, RM e RS, sempre em ordem numérica. Vendas marcadas como Permuta ou Cortesia permanecem no histórico de atendimentos, mas não entram no faturamento nem no ticket médio.
+Os cartuchos aparecem organizados pelas famílias RL, RM e RS, sempre em ordem numérica. Vendas marcadas como Permuta, Cortesia ou Retoque permanecem no histórico de atendimentos, mas não entram no faturamento nem no ticket médio. A opção Transferência não faz parte das formas de pagamento disponíveis.
 
-O saldo é calculado no navegador usando estoque inicial + entradas − consumo nas vendas. Entradas lançadas por engano podem ser excluídas no histórico, e o saldo é recalculado imediatamente. Os alertas de estoque são: Excelente (20 ou mais), Disponível (10–19), Pouco (5–9) e Acabando (0–4).
+Todos os cartuchos começam com saldo zero. O saldo é calculado pelas entradas registradas menos o consumo nas vendas, sem permitir valor negativo. Entradas lançadas por engano podem ser excluídas no histórico, e o saldo é recalculado imediatamente. Os alertas de estoque são: Excelente (20 ou mais), Disponível (10–19), Pouco (5–9), Acabando (1–4) e Não há (zero).
+
+O registro de entrada de estoque solicita somente data, cartucho e quantidade.

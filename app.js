@@ -4,13 +4,13 @@ const SUPABASE_URL = "https://cmwtijrlwfvpbkiclxyv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_G36NEdVkDlqE-A6zxD31Vg_oxLX8gAm";
 const SESSION_KEY = "palivo_supabase_session";
 const DEFAULT_CARTRIDGES = [
-  ["3RL",21],["5RL",49],["7RL",18],["9RL",23],["13RL",11],
-  ["7RM",0],["9RM",19],["11RM",20],["13RM",22],["15RM",19],["21RM",9],
-  ["7RS",0],["14RS",13]
+  ["3RL",0],["5RL",0],["7RL",0],["9RL",0],["13RL",0],
+  ["7RM",0],["9RM",0],["11RM",0],["13RM",0],["15RM",0],["21RM",0],
+  ["7RS",0],["14RS",0]
 ];
 const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const PAYMENT_COLORS = ["#c6a15b","#e5ca8e","#9b7a42","#746247","#a7a49d","#66502d","#dfcda5","#775e31"];
-const NON_REVENUE_PAYMENTS = new Set(["Permuta","Cortesia"]);
+const NON_REVENUE_PAYMENTS = new Set(["Permuta","Cortesia","Retoque"]);
 
 const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], deleteId:null, purchaseDeleteId:null };
 const $ = (id) => document.getElementById(id);
@@ -130,7 +130,7 @@ function normalizeStock(stockRows,purchases,usages){
   return state.cartridges.map(cartridge=>({
     ...(stockByCartridge[cartridge.id]||{}),
     ...cartridge,
-    quantidade_atual:safeNumber(cartridge.estoque_inicial)+safeNumber(purchaseTotals[cartridge.id])-safeNumber(usageTotals[cartridge.id])
+    quantidade_atual:Math.max(0,safeNumber(purchaseTotals[cartridge.id])-safeNumber(usageTotals[cartridge.id]))
   }));
 }
 async function startApp(){
@@ -193,11 +193,11 @@ function renderStock(){
   const groups={RL:[],RM:[],RS:[]};
   [...state.stock].sort(sortCartridges).forEach(s=>{const family=String(s.nome).toUpperCase().match(/(RL|RM|RS)$/)?.[1];if(family)groups[family].push(s)});
   const labels={RL:"Traço",RM:"Magnum",RS:"Round Shader"};
-  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":"ending";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO"}[level];return `<article class="stock-card ${level}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>unidades disponíveis</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span></article>`}).join("")}</div></section>`).join("");
+  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":qty>0?"ending":"empty-stock";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO","empty-stock":"NÃO HÁ"}[level];return `<article class="stock-card ${level}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>unidades disponíveis</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span></article>`}).join("")}</div></section>`).join("");
 }
 function renderPurchases(){
   const byId=Object.fromEntries(state.cartridges.map(c=>[c.id,c.nome]));
-  $("purchaseList").innerHTML=state.purchases.slice(0,10).map(p=>`<div class="recent-item"><div><p>${esc(byId[p.cartucho_id]||"Cartucho")}: +${safeNumber(p.quantidade)}</p><small>${formatDate(p.data_compra)}${p.fornecedor?` · ${esc(p.fornecedor)}`:""}</small></div><div class="purchase-actions"><strong>${p.valor_total==null?"—":money(p.valor_total)}</strong><button type="button" data-delete-purchase="${p.id}" class="icon-delete" title="Excluir entrada" aria-label="Excluir entrada de ${esc(byId[p.cartucho_id]||"cartucho")}">×</button></div></div>`).join("")||'<div class="empty">Nenhuma entrada registrada.</div>';
+  $("purchaseList").innerHTML=state.purchases.slice(0,10).map(p=>`<div class="recent-item"><div><p>${esc(byId[p.cartucho_id]||"Cartucho")}: +${safeNumber(p.quantidade)}</p><small>${formatDate(p.data_compra)}</small></div><div class="purchase-actions"><button type="button" data-delete-purchase="${p.id}" class="icon-delete" title="Excluir entrada" aria-label="Excluir entrada de ${esc(byId[p.cartucho_id]||"cartucho")}">×</button></div></div>`).join("")||'<div class="empty">Nenhuma entrada registrada.</div>';
 }
 function renderSelects(){
   const opts='<option value="">Selecione</option>'+[...state.cartridges].sort(sortCartridges).map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join("");
@@ -236,7 +236,7 @@ async function saveSale(e){
 async function savePurchase(e){
   e.preventDefault();const form=e.currentTarget;setBusy(form,true);$("purchaseError").hidden=true;$("purchaseError").textContent="";
   const submitButton=form.querySelector('button[type="submit"]');
-  const payload={user_id:state.user.id,data_compra:$("purchaseDate").value,cartucho_id:$("purchaseCartridge").value,quantidade:Number($("purchaseQty").value),valor_total:$("purchaseValue").value?Number($("purchaseValue").value):null,fornecedor:$("purchaseSupplier").value.trim()||null,observacoes:$("purchaseNotes").value.trim()||null};
+  const payload={user_id:state.user.id,data_compra:$("purchaseDate").value,cartucho_id:$("purchaseCartridge").value,quantidade:Number($("purchaseQty").value)};
   try{
     await db("compras_cartuchos",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)});
     submitButton.textContent="Entrada registrada ✓";submitButton.classList.add("success");toast("Entrada registrada com sucesso.");
