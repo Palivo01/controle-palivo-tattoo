@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Palivo Tattoo — Controle</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div id="toast" class="toast" role="status"></div>
+
+  <main id="loginView" class="login-view">
+    <section class="login-card">
+      <img class="login-logo" src="assets/logo-palivo.png" alt="Palivo Tattoo Studio">
+      <p class="eyebrow">CONTROLE DO ESTÚDIO</p>
+      <h1>Bem-vindo.</h1>
+      <p class="muted">Entre para acompanhar vendas e estoque.</p>
+      <form id="loginForm" class="form-stack">
+        <label>E-mail<input id="loginEmail" type="email" autocomplete="email" required></label>
+        <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+        <button class="btn primary" type="submit"><span>Entrar</span></button>
+      </form>
+    </section>
+  </main>
+
+  <div id="appView" class="app" hidden>
+    <aside class="sidebar">
+      <div class="brand"><img src="assets/logo-palivo.png" alt="Palivo Tattoo"></div>
+      <nav class="nav" aria-label="Menu principal">
+        <button data-page="dashboard" class="nav-item active"><span>◫</span>Visão geral</button>
+        <button data-page="nova-venda" class="nav-item"><span>＋</span>Nova venda</button>
+        <button data-page="vendas" class="nav-item"><span>◇</span>Vendas</button>
+        <button data-page="estoque" class="nav-item"><span>▦</span>Estoque</button>
+        <button data-page="compras" class="nav-item"><span>↓</span>Entrada</button>
+      </nav>
+      <button id="logoutBtn" class="nav-item logout"><span>↗</span>Sair</button>
+    </aside>
+
+    <header class="mobile-header">
+      <img src="assets/logo-palivo.png" alt="Palivo Tattoo">
+      <button id="mobileLogout" class="icon-btn" aria-label="Sair">↗</button>
+    </header>
+
+    <main class="content">
+      <section id="page-dashboard" class="page active">
+        <div class="page-head">
+          <div><p class="eyebrow">PAINEL</p><h2>Visão geral</h2><p class="muted" id="todayLabel"></p></div>
+          <button class="btn primary jump-sale">＋ Nova venda</button>
+        </div>
+
+        <button id="toggleFilters" class="btn filter-toggle">⌁ Filtrar resultados</button>
+        <div id="filterPanel" class="filter-panel">
+          <label>Ano<select id="filterYear"></select></label>
+          <label>Período<select id="filterPeriod"><option value="all">Ano inteiro</option><option value="s1">1º semestre</option><option value="s2">2º semestre</option><option value="q1">1º trimestre</option><option value="q2">2º trimestre</option><option value="q3">3º trimestre</option><option value="q4">4º trimestre</option><option value="month">Mês específico</option></select></label>
+          <label id="monthFilterWrap" hidden>Mês<select id="filterMonth"></select></label>
+          <label>Cidade<select id="filterCity"><option value="all">Todas</option></select></label>
+          <label>Pagamento<select id="filterPayment"><option value="all">Todos</option></select></label>
+          <label>Gênero<select id="filterGender"><option value="all">Todos</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label>
+          <button id="clearFilters" class="btn ghost">Limpar</button>
+        </div>
+
+        <div class="metrics">
+          <article class="metric featured"><small>Faturamento</small><strong id="metricRevenue">R$ 0,00</strong><span id="metricPeriod">no período</span></article>
+          <article class="metric"><small>Atendimentos</small><strong id="metricCount">0</strong><span>vendas registradas</span></article>
+          <article class="metric"><small>Ticket médio</small><strong id="metricTicket">R$ 0,00</strong><span>por atendimento</span></article>
+          <article class="metric"><small>Tempo tatuando</small><strong id="metricHours">0h</strong><span>no período</span></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel chart-panel"><div class="panel-head"><div><small>FATURAMENTO</small><h3>Vendas por mês</h3></div></div><div id="monthlyChart" class="chart"></div></article>
+          <article class="panel"><div class="panel-head"><div><small>DISTRIBUIÇÃO</small><h3>Por cidade</h3></div></div><div id="cityChart" class="bar-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><small>FORMA DE PAGAMENTO</small><h3>Como recebeu</h3></div></div><div id="paymentChart" class="donut-wrap"></div></article>
+          <article class="panel"><div class="panel-head"><div><small>ÚLTIMOS REGISTROS</small><h3>Vendas recentes</h3></div><button class="text-btn" data-page-link="vendas">Ver todas</button></div><div id="recentSales" class="recent-list"></div></article>
+        </div>
+      </section>
+
+      <section id="page-nova-venda" class="page">
+        <div class="page-head"><div><p class="eyebrow">ATENDIMENTO</p><h2 id="saleFormTitle">Nova venda</h2><p class="muted">Registre tudo em uma única tela.</p></div></div>
+        <form id="saleForm" class="panel form-card">
+          <input id="saleId" type="hidden">
+          <div class="form-grid">
+            <label>Data do atendimento<input id="saleDate" type="date" required></label>
+            <label>Nome do cliente<input id="saleClient" type="text" placeholder="Ex.: João" required></label>
+            <label>Gênero<select id="saleGender" required><option value="">Selecione</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label>
+            <label>Cidade<input id="saleCity" type="text" list="citiesList" placeholder="Ex.: Umburanas" required><datalist id="citiesList"><option value="Umburanas"><option value="Jacobina"><option value="Ourolândia"></datalist></label>
+            <label>Valor (R$)<input id="saleValue" type="number" min="0" step="0.01" placeholder="350,00" required></label>
+            <label>Forma de pagamento<select id="salePayment" required><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Transferência</option><option>Permuta</option><option>Cortesia</option><option>Outro</option></select></label>
+            <label>Duração — horas<input id="saleHours" type="number" min="0" max="24" value="0"></label>
+            <label>Duração — minutos<input id="saleMinutes" type="number" min="0" max="59" value="30"></label>
+          </div>
+          <div class="form-section-head"><div><small>MATERIAL UTILIZADO</small><h3>Cartuchos</h3></div><button id="addCartridgeRow" class="btn small ghost" type="button">＋ Adicionar</button></div>
+          <div id="cartridgeRows" class="cartridge-rows"></div>
+          <label>Observações<textarea id="saleNotes" rows="3" placeholder="Opcional"></textarea></label>
+          <div class="form-actions"><button id="cancelEdit" class="btn ghost" type="button" hidden>Cancelar edição</button><button class="btn primary" type="submit">Salvar venda</button></div>
+        </form>
+      </section>
+
+      <section id="page-vendas" class="page">
+        <div class="page-head"><div><p class="eyebrow">HISTÓRICO</p><h2>Vendas</h2><p class="muted">Consulte, edite ou exclua um atendimento.</p></div><button class="btn primary jump-sale">＋ Nova venda</button></div>
+        <div class="search-box">⌕ <input id="salesSearch" type="search" placeholder="Buscar cliente, cidade ou pagamento"></div>
+        <div id="salesList" class="sales-list"></div>
+      </section>
+
+      <section id="page-estoque" class="page">
+        <div class="page-head"><div><p class="eyebrow">MATERIAIS</p><h2>Estoque de cartuchos</h2><p class="muted">As saídas são calculadas automaticamente pelas vendas.</p></div><button class="btn primary" data-page-link="compras">＋ Registrar entrada</button></div>
+        <div id="stockSummary" class="stock-summary"></div>
+        <div id="stockGrid" class="stock-grid"></div>
+      </section>
+
+      <section id="page-compras" class="page">
+        <div class="page-head"><div><p class="eyebrow">ESTOQUE</p><h2>Entrada de cartuchos</h2><p class="muted">Registre uma compra para atualizar o saldo.</p></div></div>
+        <form id="purchaseForm" class="panel form-card compact">
+          <div class="form-grid">
+            <label>Data da compra<input id="purchaseDate" type="date" required></label>
+            <label>Cartucho<select id="purchaseCartridge" required></select></label>
+            <label>Quantidade<input id="purchaseQty" type="number" min="1" value="1" required></label>
+            <label>Valor total (R$)<input id="purchaseValue" type="number" min="0" step="0.01" placeholder="Opcional"></label>
+            <label class="span-2">Fornecedor<input id="purchaseSupplier" type="text" placeholder="Opcional"></label>
+          </div>
+          <label>Observações<textarea id="purchaseNotes" rows="3" placeholder="Opcional"></textarea></label>
+          <div class="form-actions"><button class="btn primary" type="submit">Registrar entrada</button></div>
+        </form>
+        <article class="panel purchase-history"><div class="panel-head"><div><small>HISTÓRICO</small><h3>Entradas recentes</h3></div></div><div id="purchaseList" class="recent-list"></div></article>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Menu móvel">
+      <button data-page="dashboard" class="active"><span>◫</span>Painel</button>
+      <button data-page="vendas"><span>◇</span>Vendas</button>
+      <button data-page="nova-venda" class="new"><span>＋</span>Novo</button>
+      <button data-page="estoque"><span>▦</span>Estoque</button>
+      <button data-page="compras"><span>↓</span>Entrada</button>
+    </nav>
+  </div>
+
+  <dialog id="confirmDialog">
+    <div class="dialog-content"><p class="eyebrow">CONFIRMAÇÃO</p><h3>Excluir esta venda?</h3><p class="muted">Esta ação também devolve os cartuchos ao estoque.</p><div class="form-actions"><button id="cancelDelete" class="btn ghost">Cancelar</button><button id="confirmDelete" class="btn danger">Excluir</button></div></div>
+  </dialog>
+</body>
+</html>
