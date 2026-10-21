@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0a0a">
   <title>Palivo Tattoo — Controle</title>
-  <link rel="stylesheet" href="style.css?v=12">
-  <script defer src="app.js?v=12"></script>
+  <link rel="stylesheet" href="style.css?v=13">
+  <script defer src="app.js?v=13"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -22,6 +22,27 @@
         <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" required></label>
         <button class="btn primary" type="submit" data-busy-label="Entrando..."><span>Entrar</span></button>
       </form>
+      <button id="forgotPasswordBtn" class="text-btn auth-link" type="button">Esqueci minha senha</button>
+      <section id="recoveryRequest" hidden>
+        <h2>Recuperar acesso</h2>
+        <p class="muted">Informe seu e-mail para receber um novo link.</p>
+        <form id="recoveryForm" class="form-stack">
+          <label>E-mail<input id="recoveryEmail" type="email" autocomplete="email" required></label>
+          <button class="btn primary" type="submit" data-busy-label="Enviando...">Enviar link de recuperação</button>
+        </form>
+        <p id="recoveryMessage" class="muted" role="status" aria-live="polite"></p>
+        <button id="backToLogin" class="text-btn auth-link" type="button">Voltar para entrar</button>
+      </section>
+      <section id="passwordReset" hidden>
+        <h2>Criar nova senha</h2>
+        <p class="muted">Use pelo menos 8 caracteres e confirme sua nova senha.</p>
+        <form id="passwordResetForm" class="form-stack">
+          <label>Nova senha<input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+          <label>Confirmar nova senha<input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+          <button class="btn primary" type="submit" data-busy-label="Alterando senha...">Salvar nova senha</button>
+        </form>
+        <p id="passwordResetMessage" class="muted" role="status" aria-live="polite"></p>
+      </section>
     </section>
   </main>
 

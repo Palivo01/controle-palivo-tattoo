@@ -97,6 +97,71 @@ async function logout(){
   saveSession(null); state.user=null; $("appView").hidden=true; $("loginView").hidden=false; $("loginForm").reset();
 }
 
+// Recovery uses the existing root document, so static hosting needs no new route.
+const RECOVERY_REDIRECT = "https://controle.palivotattoo.com.br/?recovery=1";
+const RECOVERY_KEY = "palivo_password_recovery";
+function showAuthMode(mode){
+  $("loginView").hidden=false; $("appView").hidden=true;
+  $("loginForm").hidden=mode!=="login";
+  $("forgotPasswordBtn").hidden=mode!=="login";
+  $("recoveryRequest").hidden=mode!=="request";
+  $("passwordReset").hidden=mode!=="reset";
+}
+function clearRecoveryUrl(){
+  const url=new URL(window.location.href);
+  url.hash=""; url.searchParams.delete("recovery");
+  window.history.replaceState(null,"",url.pathname+url.search);
+}
+async function handleRecoveryLink(){
+  const url=new URL(window.location.href);
+  const params=new URLSearchParams(url.hash.slice(1));
+  const recovery=params.get("type")==="recovery"||url.searchParams.get("recovery")==="1";
+  if(!recovery&&!params.has("error")&&!sessionStorage.getItem(RECOVERY_KEY))return false;
+  if(params.has("error")||params.has("error_code")){
+    clearRecoveryUrl();sessionStorage.removeItem(RECOVERY_KEY);showAuthMode("request");
+    $("recoveryMessage").textContent="Este link expirou ou já foi utilizado. Solicite um novo abaixo.";
+    return true;
+  }
+  try{
+    if(params.get("access_token")&&params.get("refresh_token")){
+      // Verify the token with Auth before accepting the recovery session.
+      const user=await authFetch("/user",{headers:{Authorization:`Bearer ${params.get("access_token")}`}});
+      saveSession({access_token:params.get("access_token"),refresh_token:params.get("refresh_token"),expires_in:Number(params.get("expires_in"))||3600,user});
+      state.user=user;sessionStorage.setItem(RECOVERY_KEY,"1");
+    }else if(sessionStorage.getItem(RECOVERY_KEY)&&state.session){
+      await ensureToken();
+    }else throw new Error("Link inválido");
+    clearRecoveryUrl();showAuthMode("reset");$("newPassword").focus();
+  }catch{
+    clearRecoveryUrl();sessionStorage.removeItem(RECOVERY_KEY);showAuthMode("request");
+    $("recoveryMessage").textContent="Não foi possível validar o link. Solicite um novo e abra o e-mail mais recente.";
+  }
+  return true;
+}
+async function requestPasswordReset(event){
+  event.preventDefault();const form=event.currentTarget;setBusy(form,true);
+  $("recoveryMessage").textContent="";
+  try{
+    await authFetch(`/recover?redirect_to=${encodeURIComponent(RECOVERY_REDIRECT)}`,{method:"POST",body:JSON.stringify({email:$("recoveryEmail").value.trim()})});
+    $("recoveryMessage").textContent="Se este e-mail estiver cadastrado, você receberá um link de recuperação. Confira também o spam e abra o e-mail mais recente.";
+  }catch(error){$("recoveryMessage").textContent=error.message||"Não foi possível enviar o e-mail. Tente novamente."}
+  finally{setBusy(form,false)}
+}
+async function updatePassword(event){
+  event.preventDefault();const form=event.currentTarget;
+  const password=$("newPassword").value;
+  if(password.length<8){$("passwordResetMessage").textContent="Use pelo menos 8 caracteres.";return}
+  if(password!==$("confirmPassword").value){$("passwordResetMessage").textContent="As senhas precisam ser iguais.";return}
+  setBusy(form,true);$("passwordResetMessage").textContent="";
+  try{
+    const token=await ensureToken();
+    await authFetch("/user",{method:"PUT",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify({password})});
+    sessionStorage.removeItem(RECOVERY_KEY);form.reset();
+    await logout();showAuthMode("login");toast("Senha alterada! Entre com sua nova senha.");
+  }catch(error){$("passwordResetMessage").textContent=error.message||"Não foi possível alterar a senha. Tente novamente."}
+  finally{setBusy(form,false)}
+}
+
 async function initializeCartridges(){
   const found=await db("cartuchos?select=*&order=nome");
   if(found.length){state.cartridges=found;return}
@@ -296,6 +361,10 @@ function showPage(name){
 
 function bindEvents(){
   $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;setBusy(form,true);try{await login($("loginEmail").value,$("loginPassword").value)}catch(err){toast(err.message||"Não foi possível entrar.","error")}finally{setBusy(form,false)}});
+  $("forgotPasswordBtn").onclick=()=>{showAuthMode("request");$("recoveryEmail").value=$("loginEmail").value;$("recoveryEmail").focus()};
+  $("backToLogin").onclick=()=>showAuthMode("login");
+  $("recoveryForm").addEventListener("submit",requestPasswordReset);
+  $("passwordResetForm").addEventListener("submit",updatePassword);
   $("logoutBtn").onclick=$("mobileLogout").onclick=logout;
   document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
   document.querySelectorAll("[data-page-link]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageLink));
@@ -314,6 +383,7 @@ function bindEvents(){
 
 async function boot(){
   bindEvents();resetSaleForm();state.session=getSession();
+  if(await handleRecoveryLink())return;
   if(state.session){state.user=state.session.user;try{await ensureToken();await startApp()}catch{saveSession(null)}}
 }
 document.addEventListener("DOMContentLoaded",boot);

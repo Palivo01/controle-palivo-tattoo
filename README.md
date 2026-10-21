@@ -38,3 +38,20 @@ O gráfico mensal exibe o faturamento acima de cada barra e usa alturas proporci
 Os arquivos de estilo e script usam identificação de versão para impedir que o navegador mantenha uma visualização antiga após a publicação de uma atualização.
 
 A política de segurança permite os estilos proporcionais gerados pelo próprio painel para alturas e larguras de gráficos, mantendo scripts restritos aos arquivos do site.
+
+## Recuperação de senha (atualização 13)
+
+1. Publique todos os arquivos desta versão em https://controle.palivotattoo.com.br/.
+2. No MESMO projeto Supabase usado pelo controle, abra Authentication → URL Configuration.
+3. Em Site URL, informe https://controle.palivotattoo.com.br/ e salve.
+4. Em Redirect URLs → Add URL, adicione exatamente:
+   https://controle.palivotattoo.com.br/?recovery=1
+5. No site do controle, clique em Esqueci minha senha, informe o e-mail e solicite um novo link.
+6. Abra o e-mail mais recente, crie e confirme a nova senha e entre novamente.
+
+O envio do e-mail não altera a senha. A alteração só ocorre ao salvar a nova senha no formulário.
+Links antigos para localhost devem ser substituídos por uma nova solicitação após configurar e publicar.
+O fluxo padrão do Supabase envia os tokens no fragmento da URL. O controle valida a sessão na API Auth,
+remove os tokens da barra de endereço e oferece o formulário antes de carregar o painel.
+Se você alterou o template de e-mail, mantenha o link padrão {{ .ConfirmationURL }}.
+Nenhuma tabela, venda ou estoque é alterado por esta atualização.
