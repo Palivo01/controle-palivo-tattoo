@@ -283,7 +283,7 @@ function renderPaymentDonut(rows){
 function renderSales(){
   const q=$("salesSearch").value.toLowerCase().trim();
   const rows=state.sales.filter(s=>[s.cliente,s.cidade,s.forma_pagamento].join(" ").toLowerCase().includes(q));
-  $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span></div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar">✎</button><button data-delete="${s.id}" class="delete" title="Excluir">×</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';
+  $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span></div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><label class="art-ready-control compact invoice-control"><input type="checkbox" data-invoice="${esc(s.id)}" ${s.nf_emitida?"checked":""}><span>Nota fiscal emitida</span></label><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar">✎</button><button data-delete="${s.id}" class="delete" title="Excluir">×</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';
 }
 function renderStock(){
   const low=state.stock.filter(s=>safeNumber(s.quantidade_atual)<10).length;
@@ -319,7 +319,7 @@ async function saveSale(e){
   e.preventDefault();if(!isAdmin())return;const form=e.currentTarget;setBusy(form,true);
   const id=$("saleId").value;
   let durationMinutes;try{durationMinutes=readDuration()}catch(error){toast(error.message,"error");setBusy(form,false);return}
-  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente_id:$("saleClient").value,cliente:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.nome||"",genero:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.genero||"Não informado",cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,estilos:readStyles("saleStyles"),observacoes:$("saleNotes").value.trim()||null};
+  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente_id:$("saleClient").value,cliente:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.nome||"",genero:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.genero||"Não informado",cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,estilos:readStyles("saleStyles"),nf_emitida:$("saleInvoice").checked,observacoes:$("saleNotes").value.trim()||null};
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
     const saleId=id||Store.uid();$("saleId").value=saleId;
@@ -350,7 +350,7 @@ function editSale(id){
   const s=state.sales.find(x=>x.id===id);if(!s)return;
   setStyles("saleStyles",s.estilos||[]);
   renderSaleClients(s.cliente_id||"");
-  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente_id||"";$("saleGender").value=Store.load().clientes.find(c=>c.id===s.cliente_id)?.genero||s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";
+  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente_id||"";$("saleGender").value=Store.load().clientes.find(c=>c.id===s.cliente_id)?.genero||s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";$("saleInvoice").checked=s.nf_emitida===true;
   $("cartridgeRows").innerHTML="";state.usages.filter(u=>u.venda_id===id).forEach(u=>addCartridgeRow(u.cartucho_id,u.quantidade));if(!$("cartridgeRows").children.length)addCartridgeRow();
   $("saleFormTitle").textContent="Editar venda";$("cancelEdit").hidden=false;showPage("nova-venda");window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -392,6 +392,12 @@ function bindEvents(){
   $("addCartridgeRow").onclick=()=>addCartridgeRow();$("cancelEdit").onclick=()=>{resetSaleForm();showPage("vendas")};
   $("salesSearch").oninput=renderSales;
   $("salesList").onclick=e=>{const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");if(edit)editSale(edit.dataset.edit);if(del){state.deleteId=del.dataset.delete;$("confirmDialog").showModal()}};
+  $("salesList").onchange=async e=>{
+    if(!isAdmin()||!e.target.matches("[data-invoice]"))return;
+    const input=e.target,issued=input.checked;input.disabled=true;
+    try{await Store.setInvoice(input.dataset.invoice,issued);const s=state.sales.find(s=>s.id===input.dataset.invoice);if(s)s.nf_emitida=issued;toast(issued?"Nota fiscal marcada como emitida.":"Nota fiscal marcada como pendente.")}
+    catch(err){input.checked=!issued;toast(err.message,"error")}finally{input.disabled=false}
+  };
   $("cancelDelete").onclick=()=>$("confirmDialog").close();$("confirmDelete").onclick=deleteSale;
   $("purchaseList").onclick=e=>{const button=e.target.closest("[data-delete-purchase]");if(!button)return;state.purchaseDeleteId=button.dataset.deletePurchase;$("purchaseDeleteDialog").showModal()};
   $("cancelPurchaseDelete").onclick=()=>$("purchaseDeleteDialog").close();$("confirmPurchaseDelete").onclick=deletePurchase;

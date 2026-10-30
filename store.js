@@ -56,8 +56,14 @@ const Store=(()=>{
   async function setArtReady(id,ready){
     await rpc("controle_arte_pronta",{p_id:id,p_pronta:ready});const a=data.agendamentos.find(x=>x.id===id);if(a){a.arte_pronta=ready;a.atualizado_por=profile.nome}
   }
+  async function deleteAppointment(id){
+    await rpc("controle_excluir_agendamento",{p_id:id});data.agendamentos=data.agendamentos.filter(a=>a.id!==id);await reloadWorkspace();
+  }
+  async function setInvoice(id,issued){
+    await rpc("controle_nota_fiscal",{p_id:id,p_emitida:issued});const s=data.vendas.find(s=>s.id===id);if(s)s.nf_emitida=issued;
+  }
   function clientStats(d,id){const c=d.clientes.find(c=>c.id===id);return {count:Number(c?.atendimentos)||0,first:c?.primeiro_atendimento,last:c?.ultimo_atendimento}}
-  return {styles,statuses,cities,genders,uid,date,load:()=>clone(data),profile:()=>profile,refresh,saveClient,saveAppointment,setArtReady,clientStats,
+  return {styles,statuses,cities,genders,uid,date,load:()=>clone(data),profile:()=>profile,refresh,saveClient,saveAppointment,setArtReady,deleteAppointment,setInvoice,clientStats,
     saveSale:(id,payload,materials)=>rpc("controle_salvar_venda",{p_id:id,p_dados:payload,p_materiais:materials}),
     deleteSale:id=>rpc("controle_excluir_venda",{p_id:id}),clear:()=>{epoch++;data=empty();profile=null}};
 })();

@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0a0a">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=final1">
-  <script defer src="store.js?v=final1"></script>
-  <script defer src="app.js?v=final1"></script>
-  <script defer src="icons.js?v=final1"></script>
-  <script defer src="agenda.js?v=final1"></script>
+  <link rel="stylesheet" href="style.css?v=final2">
+  <script defer src="store.js?v=final2"></script>
+  <script defer src="app.js?v=final2"></script>
+  <script defer src="icons.js?v=final2"></script>
+  <script defer src="agenda.js?v=final2"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -120,6 +120,7 @@
           <fieldset class="styles-field"><legend>Estilos da tatuagem</legend><div id="saleStyles" class="style-options"></div></fieldset>
           <div class="form-section-head"><div><small>MATERIAL UTILIZADO</small><h3>Cartuchos</h3></div><button id="addCartridgeRow" class="btn small ghost" type="button">＋ Adicionar</button></div>
           <div id="cartridgeRows" class="cartridge-rows"></div>
+          <label class="art-ready-control"><input id="saleInvoice" type="checkbox"><span>Nota fiscal emitida</span></label>
           <label>Observações<textarea id="saleNotes" rows="3" placeholder="Opcional"></textarea></label>
           <div class="form-actions"><button id="cancelEdit" class="btn ghost" type="button" hidden>Cancelar edição</button><button class="btn primary" type="submit">Salvar venda</button></div>
         </form>
@@ -192,12 +193,15 @@
     <div class="form-grid"><div class="client-picker"><label>Cliente *<select id="appointmentClient" required></select></label><button id="newClientFromAppointment" type="button" class="text-btn">＋ Criar novo cliente</button><small id="appointmentClientInfo" class="muted"></small></div><label>Data *<input id="appointmentDate" type="date" required></label><label>Horário *<input id="appointmentTime" type="time" required></label><label>Duração prevista (minutos) *<input id="appointmentDuration" type="number" min="15" max="720" step="5" value="60" required></label><label>Cidade do atendimento *<select id="appointmentCity" required><option>Jacobina</option><option>Umburanas</option><option>Ourolândia</option></select></label><label>Status<select id="appointmentStatus"><option>Agendado</option><option>Confirmado</option><option>Concluído</option><option>Cancelado</option><option>Não compareceu</option></select></label></div>
     <fieldset class="styles-field"><legend>Estilos da tatuagem *</legend><div id="appointmentStyles" class="style-options"></div></fieldset>
     <label class="art-ready-control"><input id="appointmentArtReady" type="checkbox"><span>Arte pronta</span></label>
+    <div class="deposit-fields"><label class="art-ready-control"><input id="appointmentDepositPaid" type="checkbox"><span>Sinal pago</span></label><label>Valor do sinal (R$)<input id="appointmentDepositValue" type="number" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="0,00" disabled></label></div>
+    <small class="muted">O sinal é apenas informativo. O faturamento considera somente o valor registrado na venda.</small>
     <label>Observações do agendamento<textarea id="appointmentNotes" rows="3" maxlength="2000" placeholder="Informações de atendimento visíveis para os dois perfis"></textarea></label>
     <p id="appointmentError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="appointmentDialog">Voltar</button><button type="submit" class="btn primary">Salvar agendamento</button></div>
   </form></dialog>
+  <dialog id="appointmentDeleteDialog"><div class="dialog-content"><p class="eyebrow">CONFIRMAÇÃO</p><h3>Excluir agendamento?</h3><p id="appointmentDeleteSummary"></p><p class="muted">Remove somente este agendamento. O cadastro do cliente e as vendas serão mantidos. Esta ação não pode ser desfeita.</p><p id="appointmentDeleteError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="appointmentDeleteDialog">Voltar</button><button id="confirmAppointmentDelete" type="button" class="btn danger">Excluir agendamento</button></div></div></dialog>
   <dialog id="clientDialog" class="wide-dialog"><form id="clientForm" class="dialog-content form-stack">
     <div class="panel-head"><div><p class="eyebrow">CLIENTE</p><h3 id="clientTitle">Novo cliente</h3></div><button type="button" class="icon-btn" data-close="clientDialog" aria-label="Fechar">×</button></div><input id="clientId" type="hidden">
-    <div class="form-grid"><label>Nome *<input id="clientName" required maxlength="150"></label><label>Gênero *<select id="clientGender" required><option value="">Selecione</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label><label>WhatsApp<input id="clientPhone" type="tel" inputmode="tel" maxlength="25" placeholder="(74) 99999-9999"></label><label>Cidade<input id="clientCity" list="citiesList" maxlength="100"></label><label>Origem do cliente<select id="clientSource"><option value="">Não informado</option><option>Instagram</option><option>Indicação</option><option>WhatsApp</option><option>Site</option><option>Cliente recorrente</option><option>Histórico de vendas</option><option>Outro</option></select></label></div>
+    <div class="form-grid"><label>Nome *<input id="clientName" required maxlength="150"></label><label>Gênero *<select id="clientGender" required><option value="">Selecione</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label><label>WhatsApp<input id="clientPhone" type="tel" inputmode="tel" maxlength="25" placeholder="(74) 99999-9999"></label><label>Cidade<input id="clientCity" list="citiesList" maxlength="100"></label><label>Origem do cliente<select id="clientSource"><option value="">Não informado</option><option>Instagram</option><option>Indicação</option><option>WhatsApp</option><option>Site</option><option>Cliente recorrente</option><option>Cliente</option><option>Anúncio</option><option>Outro</option></select></label></div>
     <p id="clientError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientDialog">Voltar</button><button type="submit" class="btn primary">Salvar cliente</button></div>
   </form></dialog>
   <dialog id="clientHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="clientHistoryTitle">Histórico do cliente</h3><button class="icon-btn" data-close="clientHistoryDialog" aria-label="Fechar">×</button></div><div id="clientLoyaltySummary"></div><div id="clientHistory"></div></div></dialog>
