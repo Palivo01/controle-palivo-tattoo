@@ -17,7 +17,7 @@ const $ = (id) => document.getElementById(id);
 const money = (n) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(n)||0);
 const compactMoney = (n) => safeNumber(n)>=1000?`R$ ${(safeNumber(n)/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})} mil`:`R$ ${safeNumber(n).toLocaleString("pt-BR",{maximumFractionDigits:0})}`;
 const shortMoney = (n) => safeNumber(n)>=1000?`${(safeNumber(n)/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})}k`:safeNumber(n).toLocaleString("pt-BR",{maximumFractionDigits:0});
-const isoToday = () => new Date().toISOString().slice(0,10);
+const isoToday = () => Store.date();
 const esc = (v="") => String(v).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const formatDate = (v) => v ? new Date(`${v}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 const duration = (mins=0) => `${Math.floor(mins/60)}h${mins%60 ? ` ${mins%60}min` : ""}`;
@@ -83,18 +83,31 @@ async function db(path,options={},retry=true){
   });
   if(res.status===401&&retry){await refreshSession();return db(path,options,false)}
   const data=res.status===204?null:await res.json().catch(()=>null);
-  if(!res.ok) throw new Error(data?.message||data?.details||`Erro ${res.status}`);
+  if(!res.ok){const error=new Error(data?.message||data?.details||`Erro ${res.status}`);error.code=data?.code;error.status=res.status;throw error}
+  if(options.withCount){const range=res.headers.get("content-range")||"";const totalPart=range.split("/")[1];return {data,total:totalPart&&totalPart!=="*"?Number(totalPart):null}}
   return data;
 }
 
 async function login(email,password){
   const session=await authFetch("/token?grant_type=password",{method:"POST",body:JSON.stringify({email,password})});
   saveSession(session); state.user=session.user;
-  startApp().catch(error=>toast(error.message,"error"));
+  try{await startApp()}catch(error){await logout();throw error}
+}
+function clearFinancialUI(){
+  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary"])$(id).textContent="";
+  for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
+  $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
+  $("purchaseCartridge").innerHTML='<option value="">Selecione</option>';
+  $("filterYear").textContent="";for(const id of ["filterCity","filterPayment"])$(id).innerHTML='<option value="all">Todos</option>';
+  $("showStyleRevenue").checked=false;$("styleRevenueNote").hidden=true;
 }
 async function logout(){
-  try{if(state.session)await authFetch("/logout",{method:"POST",headers:{Authorization:`Bearer ${state.session.access_token}`}})}catch{}
-  saveSession(null); state.user=null; $("appView").hidden=true; $("loginView").hidden=false; $("loginForm").reset();
+  const token=state.session?.access_token;
+  Store.clear();state.role=null;state.profile=null;state.sales=[];state.cartridges=[];state.usages=[];state.purchases=[];state.stock=[];
+  document.querySelectorAll("dialog[open]").forEach(d=>d.close());document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  clearFinancialUI();clearTimeout(toast.timer);$("toast").textContent="";$("toast").className="toast";
+  saveSession(null);state.user=null;$("appView").hidden=true;$("loginView").hidden=false;$("loginForm").reset();
+  if(token)try{await authFetch("/logout",{method:"POST",headers:{Authorization:`Bearer ${token}`}})}catch{}
 }
 
 // Recovery uses the existing root document, so static hosting needs no new route.
@@ -162,23 +175,21 @@ async function updatePassword(event){
   finally{setBusy(form,false)}
 }
 
-async function initializeCartridges(){
-  const found=await db("cartuchos?select=*&order=nome");
-  if(found.length){state.cartridges=found;return}
-  const rows=DEFAULT_CARTRIDGES.map(([nome,estoque_inicial])=>({user_id:state.user.id,nome,estoque_inicial,estoque_minimo:5}));
-  state.cartridges=await db("cartuchos",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(rows)});
-}
 async function loadData(showError=true){
+  const selected=Object.fromEntries(["filterYear","filterPeriod","filterMonth","filterCity","filterPayment","filterGender","filterStyle"].map(id=>[id,$(id).value]));
   try{
-    await initializeCartridges();
-    const [sales,usages,purchases,stock]=await Promise.all([
-      db("vendas?select=*&order=data_atendimento.desc,criado_em.desc"),
-      db("venda_cartuchos?select=*&order=criado_em.desc"),
-      db("compras_cartuchos?select=*&order=data_compra.desc,criado_em.desc"),
-      db("estoque_atual?select=*&order=nome")
-    ]);
-    Object.assign(state,{sales,usages,purchases,stock:normalizeStock(stock,purchases,usages)}); renderAll();
-  }catch(e){if(showError)toast(e.message,"error");throw e}
+    $("syncStatus").textContent="Atualizando…";
+    await Store.refresh();
+    const d=Store.load();state.profile=Store.profile();state.role=state.profile.papel;applyRole();
+    if(isAdmin()){
+      state.cartridges=d.cartuchos;
+      Object.assign(state,{sales:d.vendas,cartridges:d.cartuchos,usages:d.venda_cartuchos,purchases:d.compras_cartuchos,stock:normalizeStock([],d.compras_cartuchos,d.venda_cartuchos)});
+      renderAll();
+      for(const [id,value] of Object.entries(selected))if(value&&[...$(id).options].some(o=>o.value===value))$(id).value=value;
+      renderDashboard();
+    }else{state.sales=[];state.cartridges=[];state.usages=[];state.purchases=[];state.stock=[];clearFinancialUI();if(document.querySelector(".page.active.admin-only"))showPage("agenda")}
+    renderWorkspace();$("syncStatus").textContent="Atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  }catch(e){if(e.code==="42501"){await logout()}$("syncStatus").textContent="Falha ao atualizar";if(showError)toast(e.message,"error");throw e}
 }
 function safeNumber(value){
   const parsed=Number(value);
@@ -201,10 +212,12 @@ function normalizeStock(stockRows,purchases,usages){
   }));
 }
 async function startApp(){
+  const token=await ensureToken();state.user=await authFetch("/user",{headers:{Authorization:`Bearer ${token}`}});
+  await loadData();if(isAdmin())resetSaleForm();
   $("loginView").hidden=true; $("appView").hidden=false;
   $("todayLabel").textContent=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date());
   $("saleDate").value=isoToday(); $("purchaseDate").value=isoToday();
-  try{await loadData()}catch(e){if(/sessão|token|jwt/i.test(e.message))logout()}
+  showPage("agenda");
 }
 
 function setupFilters(){
@@ -214,6 +227,7 @@ function setupFilters(){
   $("filterYear").innerHTML=years.map(y=>`<option ${String(y)===old?"selected":""}>${y}</option>`).join("");
   $("filterMonth").innerHTML=MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("");
   const fill=(id,values)=>{const el=$(id),value=el.value;el.innerHTML='<option value="all">Todos</option>'+values.map(v=>`<option ${v===value?"selected":""}>${esc(v)}</option>`).join("")};
+  fill("filterStyle",Store.styles);
   fill("filterCity",[...new Set(state.sales.map(s=>s.cidade).filter(Boolean))].sort());
   fill("filterPayment",[...new Set(state.sales.map(s=>s.forma_pagamento).filter(Boolean))].sort());
 }
@@ -227,6 +241,7 @@ function filteredSales(ignoreGender=false){
     if(ranges[period]&&(m<ranges[period][0]||m>ranges[period][1]))return false;
     if($("filterCity").value!=="all"&&s.cidade!==$("filterCity").value)return false;
     if($("filterPayment").value!=="all"&&s.forma_pagamento!==$("filterPayment").value)return false;
+    if($("filterStyle").value!=="all"&&!(s.estilos||[]).includes($("filterStyle").value))return false;
     if(!ignoreGender&&$("filterGender").value!=="all"&&(s.genero||"Não informado")!==$("filterGender").value)return false;
     return true;
   });
@@ -239,6 +254,7 @@ function renderDashboard(){
   renderCityBars(groupSum(paidRows,"cidade"),revenue);
   renderGenderDistribution(genderRows);
   renderPaymentDonut(paidRows);
+  renderStyleStats(rows);
   $("recentSales").innerHTML=rows.slice(0,5).map(s=>`<div class="recent-item"><div><p>${esc(s.cliente)}</p><small>${formatDate(s.data_atendimento)} · ${esc(s.cidade)}</small></div><strong>${money(s.valor)}</strong></div>`).join("")||'<div class="empty">Nenhuma venda neste filtro.</div>';
 }
 function renderGenderDistribution(rows){
@@ -286,7 +302,7 @@ function renderSelects(){
   $("purchaseCartridge").innerHTML=opts;
   document.querySelectorAll(".cartridge-select").forEach(el=>{const v=el.value;el.innerHTML=opts;el.value=v});
 }
-function renderAll(){setupFilters();renderSelects();renderDashboard();renderSales();renderStock();renderPurchases()}
+function renderAll(){renderSaleClients();setupFilters();renderSelects();renderDashboard();renderSales();renderStock();renderPurchases()}
 
 function addCartridgeRow(cartuchoId="",quantidade=1){
   const row=document.createElement("div");row.className="cartridge-row";
@@ -295,28 +311,24 @@ function addCartridgeRow(cartuchoId="",quantidade=1){
   row.querySelector(".remove-row").onclick=()=>row.remove();
 }
 function resetSaleForm(){
-  $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;
+  renderSaleClients();
+  setStyles("saleStyles",[]);
+  $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;syncSaleClient();
 }
 async function saveSale(e){
-  e.preventDefault();const form=e.currentTarget;setBusy(form,true);
+  e.preventDefault();if(!isAdmin())return;const form=e.currentTarget;setBusy(form,true);
   const id=$("saleId").value;
   let durationMinutes;try{durationMinutes=readDuration()}catch(error){toast(error.message,"error");setBusy(form,false);return}
-  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente:$("saleClient").value.trim(),genero:$("saleGender").value,cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,observacoes:$("saleNotes").value.trim()||null};
+  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente_id:$("saleClient").value,cliente:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.nome||"",genero:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.genero||"Não informado",cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,estilos:readStyles("saleStyles"),observacoes:$("saleNotes").value.trim()||null};
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
-    let saleId=id;
-    if(id){
-      await db(`vendas?id=eq.${id}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)});
-      await db(`venda_cartuchos?venda_id=eq.${id}`,{method:"DELETE",headers:{Prefer:"return=minimal"}});
-    }else{
-      const created=await db("vendas",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)});saleId=created[0].id;
-    }
-    if(materials.length)await db("venda_cartuchos",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(materials.map(x=>({...x,user_id:state.user.id,venda_id:saleId})))});
-    toast(id?"Venda atualizada.":"Venda salva com sucesso.");resetSaleForm();await loadData(false);showPage("dashboard");
+    const saleId=id||Store.uid();$("saleId").value=saleId;
+    await Store.saveSale(saleId,payload,materials);
+    toast(id?"Venda atualizada.":"Venda salva com sucesso.");resetSaleForm();try{await loadData(false)}catch{toast("Venda salva. Use Atualizar dados para recarregar o painel.","error")}showPage("dashboard");
   }catch(err){toast(err.message,"error")}finally{setBusy(form,false)}
 }
 async function savePurchase(e){
-  e.preventDefault();const form=e.currentTarget;setBusy(form,true);$("purchaseError").hidden=true;$("purchaseError").textContent="";
+  e.preventDefault();if(!isAdmin())return;const form=e.currentTarget;setBusy(form,true);$("purchaseError").hidden=true;$("purchaseError").textContent="";
   const submitButton=form.querySelector('button[type="submit"]');
   const payload={user_id:state.user.id,data_compra:$("purchaseDate").value,cartucho_id:$("purchaseCartridge").value,quantidade:Number($("purchaseQty").value)};
   try{
@@ -329,30 +341,36 @@ async function savePurchase(e){
     },900);
   }catch(err){
     const message=err.message||"Não foi possível registrar a entrada.";
-    $("purchaseError").textContent=`Erro do Supabase: ${message}`;$("purchaseError").hidden=false;toast(message,"error");
+    $("purchaseError").textContent=`Não foi possível salvar a entrada: ${message}`;$("purchaseError").hidden=false;toast(message,"error");
     setBusy(form,false);submitButton.textContent="Tentar novamente";
   }
 }
 function editSale(id){
+  if(!isAdmin())return;
   const s=state.sales.find(x=>x.id===id);if(!s)return;
-  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente;$("saleGender").value=s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";
+  setStyles("saleStyles",s.estilos||[]);
+  renderSaleClients(s.cliente_id||"");
+  $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente_id||"";$("saleGender").value=Store.load().clientes.find(c=>c.id===s.cliente_id)?.genero||s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";
   $("cartridgeRows").innerHTML="";state.usages.filter(u=>u.venda_id===id).forEach(u=>addCartridgeRow(u.cartucho_id,u.quantidade));if(!$("cartridgeRows").children.length)addCartridgeRow();
   $("saleFormTitle").textContent="Editar venda";$("cancelEdit").hidden=false;showPage("nova-venda");window.scrollTo({top:0,behavior:"smooth"});
 }
 async function deleteSale(){
+  if(!isAdmin())return;
   if(!state.deleteId)return;
-  try{await db(`vendas?id=eq.${state.deleteId}`,{method:"DELETE",headers:{Prefer:"return=minimal"}});toast("Venda excluída.");$("confirmDialog").close();state.deleteId=null;await loadData(false)}catch(e){toast(e.message,"error")}
+  try{await Store.deleteSale(state.deleteId);toast("Venda excluída.");$("confirmDialog").close();state.deleteId=null;await loadData(false)}catch(e){toast(e.message,"error")}
 }
 async function deletePurchase(){
+  if(!isAdmin())return;
   if(!state.purchaseDeleteId)return;
   const button=$("confirmPurchaseDelete");button.disabled=true;button.textContent="Excluindo...";
   try{
-    await db(`compras_cartuchos?id=eq.${state.purchaseDeleteId}`,{method:"DELETE",headers:{Prefer:"return=minimal"}});
+    const deleted=await db(`compras_cartuchos?id=eq.${state.purchaseDeleteId}`,{method:"DELETE",headers:{Prefer:"return=representation"}});if(!deleted?.length)throw new Error("A entrada não foi encontrada ou seu acesso mudou. Atualize os dados.");
     toast("Entrada excluída e saldo atualizado.");$("purchaseDeleteDialog").close();state.purchaseDeleteId=null;await loadData(false);
   }catch(e){toast(e.message,"error")}
   finally{button.disabled=false;button.textContent="Excluir entrada"}
 }
 function showPage(name){
+  if(!isAdmin()&&!["agenda","clientes"].includes(name))name="agenda";
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===`page-${name}`));
   document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===name));
   if(name==="nova-venda"&&!$("saleId").value&&document.activeElement?.classList.contains("jump-sale"))resetSaleForm();
@@ -360,11 +378,12 @@ function showPage(name){
 }
 
 function bindEvents(){
-  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;setBusy(form,true);try{await login($("loginEmail").value,$("loginPassword").value)}catch(err){toast(err.message||"Não foi possível entrar.","error")}finally{setBusy(form,false)}});
-  $("forgotPasswordBtn").onclick=()=>{showAuthMode("request");$("recoveryEmail").value=$("loginEmail").value;$("recoveryEmail").focus()};
+  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;setBusy(form,true);try{await login($("loginEmail").value.trim(),$("loginPassword").value)}catch(err){toast(err.message,"error")}finally{setBusy(form,false)}});
+  $("forgotPasswordBtn").onclick=()=>{showAuthMode("request");$("recoveryEmail").value=$("loginEmail").value};
   $("backToLogin").onclick=()=>showAuthMode("login");
-  $("recoveryForm").addEventListener("submit",requestPasswordReset);
-  $("passwordResetForm").addEventListener("submit",updatePassword);
+  $("recoveryForm").addEventListener("submit",requestPasswordReset);$("passwordResetForm").addEventListener("submit",updatePassword);
+  $("refreshData").onclick=async()=>{const b=$("refreshData");b.disabled=true;try{await loadData()}catch{}finally{b.disabled=false}};
+  $("showStyleRevenue").onchange=renderDashboard;
   $("logoutBtn").onclick=$("mobileLogout").onclick=logout;
   document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
   document.querySelectorAll("[data-page-link]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageLink));
@@ -377,13 +396,13 @@ function bindEvents(){
   $("purchaseList").onclick=e=>{const button=e.target.closest("[data-delete-purchase]");if(!button)return;state.purchaseDeleteId=button.dataset.deletePurchase;$("purchaseDeleteDialog").showModal()};
   $("cancelPurchaseDelete").onclick=()=>$("purchaseDeleteDialog").close();$("confirmPurchaseDelete").onclick=deletePurchase;
   $("toggleFilters").onclick=()=>$("filterPanel").classList.toggle("open");
-  ["filterYear","filterPeriod","filterMonth","filterCity","filterPayment","filterGender"].forEach(id=>$(id).onchange=()=>{$("monthFilterWrap").hidden=$("filterPeriod").value!=="month";renderDashboard()});
-  $("clearFilters").onclick=()=>{$("filterYear").value=String(new Date().getFullYear());$("filterPeriod").value="all";$("filterCity").value="all";$("filterPayment").value="all";$("filterGender").value="all";$("monthFilterWrap").hidden=true;renderDashboard()};
+  ["filterYear","filterPeriod","filterMonth","filterCity","filterPayment","filterGender","filterStyle"].forEach(id=>$(id).onchange=()=>{$("monthFilterWrap").hidden=$("filterPeriod").value!=="month";renderDashboard()});
+  $("clearFilters").onclick=()=>{$("filterYear").value=String(new Date().getFullYear());$("filterPeriod").value="all";$("filterCity").value="all";$("filterPayment").value="all";$("filterGender").value="all";$("filterStyle").value="all";$("monthFilterWrap").hidden=true;renderDashboard()};
 }
 
 async function boot(){
-  bindEvents();resetSaleForm();state.session=getSession();
+  initWorkspace();bindEvents();resetSaleForm();state.session=getSession();
   if(await handleRecoveryLink())return;
-  if(state.session){state.user=state.session.user;try{await ensureToken();await startApp()}catch{saveSession(null)}}
+  if(state.session){state.user=state.session.user;try{await ensureToken();await startApp()}catch(e){await logout();toast(e.message,"error")}}
 }
 document.addEventListener("DOMContentLoaded",boot);
