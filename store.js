@@ -64,6 +64,7 @@ const Store=(()=>{
   }
   function clientStats(d,id){const c=d.clientes.find(c=>c.id===id);return {count:Number(c?.atendimentos)||0,first:c?.primeiro_atendimento,last:c?.ultimo_atendimento}}
   return {styles,statuses,cities,genders,uid,date,load:()=>clone(data),profile:()=>profile,refresh,saveClient,saveAppointment,setArtReady,deleteAppointment,setInvoice,clientStats,
+    saveBirthday:async(id,year,details)=>{await rpc("controle_salvar_aniversario",{p_cliente:id,p_ano:year,p_dados:details});await reloadWorkspace()},
     saveSale:(id,payload,materials)=>rpc("controle_salvar_venda",{p_id:id,p_dados:payload,p_materiais:materials}),
     deleteSale:id=>rpc("controle_excluir_venda",{p_id:id}),clear:()=>{epoch++;data=empty();profile=null}};
 })();

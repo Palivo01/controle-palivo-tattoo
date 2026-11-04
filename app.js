@@ -94,6 +94,7 @@ async function login(email,password){
   try{await startApp()}catch(error){await logout();throw error}
 }
 function clearFinancialUI(){
+  for(const id of ["clientHistory","clientLoyaltySummary","clientList"])$(id).textContent="";
   for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary"])$(id).textContent="";
   for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
   $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
@@ -313,12 +314,12 @@ function addCartridgeRow(cartuchoId="",quantidade=1){
 function resetSaleForm(){
   renderSaleClients();
   setStyles("saleStyles",[]);
-  $("saleForm").reset();$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;syncSaleClient();
+  $("saleForm").reset();resetClientPicker("sale");$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;syncSaleClient();
 }
 async function saveSale(e){
   e.preventDefault();if(!isAdmin())return;const form=e.currentTarget;setBusy(form,true);
   const id=$("saleId").value;
-  let durationMinutes;try{durationMinutes=readDuration()}catch(error){toast(error.message,"error");setBusy(form,false);return}
+  let durationMinutes;try{if(!$("saleClient").value)throw new Error("Selecione um cliente cadastrado.");durationMinutes=readDuration()}catch(error){toast(error.message,"error");setBusy(form,false);return}
   const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente_id:$("saleClient").value,cliente:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.nome||"",genero:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.genero||"Não informado",cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,estilos:readStyles("saleStyles"),nf_emitida:$("saleInvoice").checked,observacoes:$("saleNotes").value.trim()||null};
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
