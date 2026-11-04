@@ -5,7 +5,7 @@ function icon(name){
     clientes:'<circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
     dashboard:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
     vendas:'<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M5 8h2m10 8h2M5 16h1M18 8h1"/>',
-    estoque:'<path d="M7 3h10v4l2 3v6l-4 5H9l-4-5v-6l2-3Z"/><path d="M7 7h10M5 11h14M9 12v5m3-5v7m3-7v5M9 3V1m3 2V1m3 2V1"/>',
+    estoque:'<path d="m2 22 3-3m0 0 1-4L16 5l3 3L9 18l-4 1Zm1-4 3 3M13 8l3 3m-2-8 2 2m3 3 2 2M16 5l3-3 3 3-3 3M9 13l3-3m-4 4 3 3"/>',
     compras:'<path d="M12 2v10m-4-4 4 4 4-4M4 10l-2 5v6h20v-6l-2-5M2 15h6l2 3h4l2-3h6"/>',
     'nova-venda':'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 8v8m-4-4h8"/>',
     equipe:'<circle cx="8" cy="7" r="3"/><path d="M2 20v-2a6 6 0 0 1 12 0v2m2-16a3 3 0 0 1 0 6m1 4a5 5 0 0 1 5 5v1"/>',
