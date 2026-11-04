@@ -94,7 +94,7 @@ async function login(email,password){
   try{await startApp()}catch(error){await logout();throw error}
 }
 function clearFinancialUI(){
-  for(const id of ["clientHistory","clientLoyaltySummary","clientList"])$(id).textContent="";
+  for(const id of ["clientHistory","clientLoyaltySummary","clientList","clientDetails","upcomingReminders"])$(id).textContent="";
   for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary"])$(id).textContent="";
   for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
   $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
@@ -218,7 +218,7 @@ async function startApp(){
   $("loginView").hidden=true; $("appView").hidden=false;
   $("todayLabel").textContent=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date());
   $("saleDate").value=isoToday(); $("purchaseDate").value=isoToday();
-  showPage("agenda");
+  showPage("agenda");renderUpcomingReminders();
 }
 
 function setupFilters(){

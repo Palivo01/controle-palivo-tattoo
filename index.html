@@ -10,12 +10,12 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm3">
-  <script defer src="store.js?v=crm3"></script>
-  <script defer src="app.js?v=crm3"></script>
-  <script defer src="icons.js?v=crm3"></script>
-  <script defer src="agenda.js?v=crm3"></script>
-  <script defer src="clientes.js?v=crm3"></script>
+  <link rel="stylesheet" href="style.css?v=crm41">
+  <script defer src="store.js?v=crm41"></script>
+  <script defer src="app.js?v=crm41"></script>
+  <script defer src="icons.js?v=crm41"></script>
+  <script defer src="agenda.js?v=crm41"></script>
+  <script defer src="clientes.js?v=crm41"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -158,6 +158,7 @@
         <article class="panel purchase-history"><div class="panel-head"><div><small>HISTÓRICO</small><h3>Entradas recentes</h3></div></div><div id="purchaseList" class="recent-list"></div></article>
       </section>
 
+      <section id="upcomingReminders" class="panel upcoming-reminders" role="region" aria-label="Atendimentos de amanhã" hidden></section>
       <section id="page-agenda" class="page">
         <div class="page-head"><div><p class="eyebrow">SEU TEMPO, BEM ORGANIZADO</p><h2>Agenda</h2><p class="muted">Atendimentos do estúdio, em um só lugar.</p></div><button id="newAppointment" class="btn primary">＋ Agendar cliente</button></div>
         <div class="agenda-metrics" id="agendaMetrics"></div>
@@ -172,7 +173,7 @@
       </section>
       <section id="page-clientes" class="page">
         <div class="page-head"><div><p class="eyebrow">RELACIONAMENTO</p><h2>Clientes</h2><p class="muted">Contato, cidade e histórico de agendamentos.</p></div><button id="newClient" class="btn primary">＋ Novo cliente</button></div>
-        <div class="search-box">⌕ <input id="clientSearch" type="search" placeholder="Buscar nome, WhatsApp ou cidade"></div><div class="client-filters"><label>Cidade do cadastro<select id="clientCityFilter"><option value="all">Todas as cidades</option></select></label><label>Aniversariantes<select id="clientBirthdayFilter"><option value="all">Todos os clientes</option><option value="current">Aniversariantes deste mês</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></label><span id="clientResultCount" class="muted" aria-live="polite"></span></div><div id="clientList" class="client-grid"></div>
+        <div class="search-box">⌕ <input id="clientSearch" type="search" placeholder="Buscar nome, WhatsApp ou cidade"></div><div class="client-filters"><label>Cidade do cadastro<select id="clientCityFilter"><option value="all">Todas as cidades</option></select></label><label>Aniversariantes<select id="clientBirthdayFilter"><option value="all">Todos os clientes</option><option value="current">Aniversariantes deste mês</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></label><label>Gênero<select id="clientGenderFilter"><option value="all">Todos</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label><span id="clientResultCount" class="muted" aria-live="polite"></span></div><div id="clientList" class="client-grid"></div>
       </section>
 
     </main>
@@ -209,8 +210,8 @@
     <div class="form-grid"><label>Nome *<input id="clientName" required maxlength="150"></label><label>Gênero *<select id="clientGender" required><option value="">Selecione</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label><label>Data de nascimento<input id="clientBirthDate" type="date" min="1900-01-01"></label><label>WhatsApp<input id="clientPhone" type="tel" inputmode="tel" maxlength="25" placeholder="(74) 99999-9999"></label><label>Cidade<input id="clientCity" list="citiesList" maxlength="100"></label><label>Origem do cliente<select id="clientSource"><option value="">Não informado</option><option>Instagram</option><option>Indicação</option><option>WhatsApp</option><option>Site</option><option>Cliente recorrente</option><option>Cliente</option><option>Anúncio</option><option>Outro</option></select></label></div>
     <p id="clientError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientDialog">Voltar</button><button type="submit" class="btn primary">Salvar cliente</button></div>
   </form></dialog>
-  <dialog id="clientHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="clientHistoryTitle">Histórico do cliente</h3><button class="icon-btn" data-close="clientHistoryDialog" aria-label="Fechar">×</button></div><div id="clientLoyaltySummary"></div><div id="clientHistory"></div></div></dialog>
-<dialog id="clientMessageDialog" class="wide-dialog"><form id="clientMessageForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="clientMessageTitle">Mensagem para o cliente</h3><button type="button" class="icon-btn" data-close="clientMessageDialog" aria-label="Fechar">×</button></div><p id="clientMessageRecipient" class="muted"></p><label>Mensagem<textarea id="clientMessageText" rows="7" maxlength="4000" required></textarea></label><p id="clientMessageError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientMessageDialog">Voltar</button><button type="submit" class="btn primary">Abrir WhatsApp</button></div></form></dialog>
+  <dialog id="clientHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="clientHistoryTitle">Histórico do cliente</h3><button class="icon-btn" data-close="clientHistoryDialog" aria-label="Fechar">×</button></div><div id="clientDetails"></div><div id="clientLoyaltySummary"></div><div id="clientHistory"></div></div></dialog>
+<dialog id="clientMessageDialog" class="wide-dialog"><form id="clientMessageForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="clientMessageTitle">Mensagem para o cliente</h3><button type="button" class="icon-btn" data-close="clientMessageDialog" aria-label="Fechar">×</button></div><p id="clientMessageRecipient" class="muted"></p><label>Mensagem<textarea id="clientMessageText" rows="7" maxlength="4000" required></textarea></label><p id="clientMessageError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientMessageDialog">Voltar</button><button type="submit" class="btn whatsapp-btn">Abrir WhatsApp</button></div></form></dialog>
 <dialog id="birthdayDialog" class="wide-dialog"><form id="birthdayForm" class="dialog-content form-stack"><div class="panel-head"><div><p class="eyebrow" id="birthdayYear"></p><h3 id="birthdayTitle">Aniversário</h3></div><button type="button" class="icon-btn" data-close="birthdayDialog" aria-label="Fechar">×</button></div><label>Benefício do mês<input id="birthdayBenefit" maxlength="500" readonly></label><label>Mensagem<textarea id="birthdayMessage" rows="6" maxlength="4000"></textarea></label><button type="button" id="birthdayWhatsapp" class="btn ghost">Abrir WhatsApp</button><label class="art-ready-control"><input id="birthdaySent" type="checkbox"><span>Mensagem enviada</span></label><label class="art-ready-control"><input id="birthdayUsed" type="checkbox"><span>Bonificação utilizada</span></label><p id="birthdayError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="birthdayDialog">Voltar</button><button type="submit" class="btn primary">Salvar acompanhamento</button></div></form></dialog>
 </body>
 </html>
