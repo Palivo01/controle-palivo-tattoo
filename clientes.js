@@ -6,7 +6,7 @@ const birthMonth=c=>Number(String(c.data_nascimento||"").slice(5,7));
 const formatBirthday=value=>{const parts=String(value||"").split("-");return parts.length===3?`${parts[2]}/${parts[1]}`:""};
 const birthdayRecord=c=>c?.aniversario_registros?.[new Date().getFullYear()]||{};
 const BIRTHDAY_BENEFIT="20% de desconto em uma tattoo durante todo o mês de aniversário";
-let messageClientId="",birthdayClientId="",birthdayTrackingYear=0;
+let messageClientId="",birthdayClientId="",birthdayTrackingYear=0,depositMessageAppointmentId="";
 function clientCities(){
   const list=new Map(Store.cities.map(city=>[normalizeClientText(city),city]));
   for(const c of Store.load().clientes)if(c.cidade?.trim()&&!isInvalidCity(c.cidade))list.set(clientCityKey(c),c.cidade.trim());
@@ -50,6 +50,10 @@ function initClientTools(){
     $(prefix+"ClientSearch").oninput=()=>{const id=$(prefix+"Client").value;updateClientPicker(prefix,id);prefix==="sale"?syncSaleClient():syncAppointmentClient()};
     $(prefix+"ClientMode").onchange=e=>{if(e.target.value==="new"){e.target.value="existing";openClient("",prefix)}};
   }
+  $("depositReminderValue").oninput=()=>{
+    const d=Store.load(),a=d.agendamentos.find(a=>a.id===depositMessageAppointmentId),c=d.clientes.find(c=>c.id===a?.cliente_id);
+    if(a&&c)$("clientMessageText").value=depositReminderMessage(a,c,$("depositReminderValue").value);
+  };
   $("clientGenderFilter").onchange=renderClients;
   $("clientDetails").onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.client)openClient(b.dataset.client);if(b.dataset.book)openAppointment("",b.dataset.book);if(b.dataset.birthday)openBirthday(b.dataset.birthday)};
   $("upcomingReminders").onclick=e=>{const b=e.target.closest("[data-client-message]");if(b)openAppointmentMessage(b.dataset.clientMessage)};
@@ -96,23 +100,30 @@ function launchClientWhatsapp(id,message){
 }
 function appointmentMessage(a,c){
   if(a.status==="Concluído")return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nComo foi sua experiência com a gente no dia ${formatDate(a.data)}?\n\nE como está a cicatrização da sua tattoo? Se tiver alguma dúvida sobre os cuidados, pode falar por aqui!`;
-  return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nPassando para lembrar da sua tattoo\n\n\u{1F4C5} ${formatDate(a.data)}\n\u231A ${formatTime(a.hora)}\n\u{1F4CD} ${a.cidade}\n\nEstá tudo certo para o nosso encontro? Se precisar falar sobre algum detalhe, é só responder por aqui!`;
+  return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nPassando para lembrar da sua tattoo\n\nData: ${formatDate(a.data)}\nHorário: ${formatTime(a.hora)}\nCidade: ${a.cidade}\n\nEstá tudo certo para o nosso encontro? Se precisar falar sobre algum detalhe, é só responder por aqui!`;
 }
-function openAppointmentMessage(id){
+function depositReminderMessage(a,c,value=a.sinal_valor){
+  const amount=Number(value),label=Number.isFinite(amount)&&amount>0?money(amount):"50% do valor da tatuagem";
+  return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nPassando para lembrar do pagamento do sinal de ${label}, necessário para reservar seu horário e evitar que ele seja disponibilizado para outra pessoa.\n\nAguardo seu retorno com o comprovante. Logo mais nos vemos na sessão!`;
+}
+function openAppointmentMessage(id,kind="appointment"){
   const d=Store.load(),a=d.agendamentos.find(a=>a.id===id),c=d.clientes.find(c=>c.id===a?.cliente_id);if(!a||!c)return;
+  const deposit=kind==="deposit";if(deposit&&(a.sinal_pago||!["Agendado","Confirmado"].includes(a.status)))return;
+  depositMessageAppointmentId=deposit?id:"";$("depositReminderField").hidden=!deposit;
+  $("depositReminderValue").value=deposit&&Number(a.sinal_valor)>0?a.sinal_valor:"";
   $("clientMessageForm").querySelector('button[type="submit"]').innerHTML=whatsappIcon()+" Abrir WhatsApp";
-  messageClientId=c.id;$("clientMessageTitle").textContent=a.status==="Concluído"?"Como foi o atendimento?":"Lembrar horário";
+  messageClientId=c.id;$("clientMessageTitle").textContent=deposit?"Lembrar sinal":a.status==="Concluído"?"Como foi o atendimento?":"Lembrar horário";
   $("clientMessageRecipient").innerHTML=`${esc(c.nome)} · ${whatsappContact(c)}`;
-  $("clientMessageText").value=appointmentMessage(a,c);$("clientMessageError").hidden=true;$("clientMessageDialog").showModal();
+  $("clientMessageText").value=deposit?depositReminderMessage(a,c):appointmentMessage(a,c);$("clientMessageError").hidden=true;$("clientMessageDialog").showModal();
 }
 function birthdayMonthName(c){return new Intl.DateTimeFormat("pt-BR",{month:"long"}).format(new Date(2000,birthMonth(c)-1,15))}
 function makeBirthdayMessage(c){
-  return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nPreparamos um presente para o seu mês de aniversário!\n\n\u{1F4C5} Mês de ${birthdayMonthName(c)}\nBenefício: 20% de desconto em uma tattoo\nValidade: durante todo o seu mês de aniversário\n\nQue esse novo ciclo venha com saúde, alegrias e boas histórias!\n\nQuer aproveitar seu presente? Responda por aqui e combinamos os detalhes da sua próxima tattoo!`;
+  return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nPreparamos um presente para o seu mês de aniversário!\n\nVocê tem 20% de desconto em uma tattoo durante todo o mês de ${birthdayMonthName(c)}.\n\nQue esse novo ciclo venha com saúde, alegrias e boas histórias!\n\nQuer aproveitar seu presente? Responda por aqui e combinamos os detalhes da sua próxima tattoo!`;
 }
 function openBirthday(id){
   const c=Store.load().clientes.find(c=>c.id===id);if(!c)return;
   birthdayClientId=id;birthdayTrackingYear=new Date().getFullYear();const record=birthdayRecord(c);
-  $("birthdayTitle").textContent=c.nome;$("birthdayYear").textContent=`Benefício de ${birthdayMonthName(c)} · ${birthdayTrackingYear}`;
+  $("birthdayTitle").textContent=c.nome;$("birthdayYear").textContent=`Presente de ${birthdayMonthName(c)} · ${birthdayTrackingYear}`;
   $("birthdayWhatsapp").className="btn whatsapp-btn";$("birthdayWhatsapp").innerHTML=whatsappIcon()+" Abrir WhatsApp";
   $("birthdayBenefit").value=BIRTHDAY_BENEFIT;$("birthdayMessage").value=makeBirthdayMessage(c,BIRTHDAY_BENEFIT);
   $("birthdaySent").checked=record.mensagem_enviada===true;$("birthdayUsed").checked=record.bonus_utilizado===true;
@@ -133,7 +144,7 @@ function whatsappContact(c){
  try{return `<a class="whatsapp-contact" href="https://wa.me/${whatsappDigits(c.whatsapp)}" target="_blank" rel="noopener noreferrer">${whatsappIcon()}<span>${esc(formatWhatsapp(c.whatsapp))}</span></a>`}
  catch{return `<span class="whatsapp-contact">${whatsappIcon()}<span>${esc(formatWhatsapp(c.whatsapp))}</span></span>`}
 }
-function genderBadge(gender){const value=["Homem","Mulher"].includes(gender)?gender:"Não informado";return `<span class="client-label gender-${value==="Homem"?"man":value==="Mulher"?"woman":"unknown"}">${esc(value)}</span>`}
+function genderBadge(gender){const value=["Homem","Mulher"].includes(gender)?gender:"Não informado";return `<span class="gender-icon gender-${value==="Homem"?"man":value==="Mulher"?"woman":"unknown"}" role="img" aria-label="${esc(value)}" title="${esc(value)}">${icon("clientes")}</span>`}
 function cityBadge(city){const key=clientCityKey({cidade:city}),value=key==="__none"?"Cidade não informada":city;return `<span class="client-label city-${key==="jacobina"?"jacobina":key==="ourolandia"?"ourolandia":key==="umburanas"?"umburanas":"other"}">${esc(value)}</span>`}
 function tomorrowDate(base=new Date()){const d=new Date(base);d.setDate(d.getDate()+1);return Store.date(d)}
 function tomorrowAppointments(data,base=new Date()){
