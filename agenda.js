@@ -5,12 +5,15 @@ function applyRole(){
   document.body.classList.toggle("collaborator",!isAdmin());
   $("profileLabel").textContent=`${currentActor()} · ${isAdmin()?"Administrador":"Agenda e clientes"}`;
 }
-let clientReturnTo="",appointmentDeleteId="";
+let clientReturnTo="",appointmentDeleteId="",clientDeleteId="";
 function initWorkspace(){
   installIcons();initClientTools();
   $("newClientFromAppointment").onclick=()=>openClient("","appointment");
   $("newClientFromSale").onclick=()=>openClient("","sale");
   $("saleClient").onchange=syncSaleClient;
+  $("deleteClientBtn").onclick=()=>confirmClientDeletion($("clientId").value);
+  $("confirmClientDelete").onclick=deleteClient;
+  $("clientDeleteDialog").addEventListener("close",()=>{clientDeleteId=""});
   $("clientDialog").addEventListener("close",()=>{clientReturnTo=""});
   for(const id of ["saleStyles","appointmentStyles"])$(id).innerHTML=Store.styles.map(s=>`<label class="style-chip"><input type="checkbox" value="${esc(s)}"><span>${esc(s)}</span></label>`).join("");
   $("agendaDate").value=isoToday();
@@ -141,7 +144,17 @@ function renderClients(){
 
 function openClient(id="",returnTo=""){
   clientReturnTo=returnTo;
-  const c=Store.load().clientes.find(c=>c.id===id);$("clientForm").reset();$("clientError").hidden=true;$("clientId").value=c?.id||"";$("clientName").value=c?.nome||"";$("clientGender").value=c?.genero||"";$("clientPhone").value=formatWhatsapp(c?.whatsapp||"");$("clientBirthDate").value=c?.data_nascimento||"";$("clientBirthDate").max=isoToday();$("clientCity").value=c?.cidade||"";$("clientSource").value=c?.origem==="Histórico de vendas"?"Cliente":c?.origem||"";$("clientTitle").textContent=c?"Editar cliente":"Novo cliente";$("clientDialog").showModal();
+  const c=Store.load().clientes.find(c=>c.id===id);$("clientForm").reset();$("clientError").hidden=true;$("clientId").value=c?.id||"";$("clientName").value=c?.nome||"";$("clientGender").value=c?.genero||"";$("clientPhone").value=formatWhatsapp(c?.whatsapp||"");$("clientBirthDate").value=c?.data_nascimento||"";$("clientBirthDate").max=isoToday();$("clientCity").value=c?.cidade||"";$("clientSource").value=c?.origem==="Histórico de vendas"?"Cliente":c?.origem||"";$("deleteClientBtn").hidden=!c||!isAdmin();$("clientTitle").textContent=c?"Editar cliente":"Novo cliente";$("clientDialog").showModal();
+}
+function confirmClientDeletion(id){
+  const c=Store.load().clientes.find(c=>c.id===id);if(!c||!isAdmin())return;
+  clientDeleteId=id;$("clientDeleteName").textContent=c.nome;$("clientDeleteError").hidden=true;$("clientDeleteDialog").showModal();
+}
+async function deleteClient(){
+  if(!clientDeleteId||!isAdmin())return;const id=clientDeleteId,button=$("confirmClientDelete");button.disabled=true;$("clientDeleteError").hidden=true;
+  try{
+    await Store.deleteClient(id);$("clientDeleteDialog").close();$("clientDialog").close();$("clientHistoryDialog").close();renderWorkspace();toast("Cliente excluído.");
+  }catch(err){$("clientDeleteError").textContent=/controle_excluir_cliente|schema cache|PGRST202/i.test(err.message)?"Ative a exclusão de clientes executando a atualização V11.3 no Supabase.":err.message;$("clientDeleteError").hidden=false}finally{button.disabled=false}
 }
 async function saveClient(e){
   e.preventDefault();const form=e.currentTarget,id=$("clientId").value,c={id:id||Store.uid(),nome:$("clientName").value.trim(),genero:$("clientGender").value,whatsapp:$("clientPhone").value.trim(),cidade:$("clientCity").value.trim(),origem:$("clientSource").value,data_nascimento:$("clientBirthDate").value||null};
