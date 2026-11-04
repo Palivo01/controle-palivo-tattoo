@@ -10,12 +10,12 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm41">
-  <script defer src="store.js?v=crm41"></script>
-  <script defer src="app.js?v=crm41"></script>
-  <script defer src="icons.js?v=crm41"></script>
-  <script defer src="agenda.js?v=crm41"></script>
-  <script defer src="clientes.js?v=crm41"></script>
+  <link rel="stylesheet" href="style.css?v=crm112">
+  <script defer src="store.js?v=crm112"></script>
+  <script defer src="app.js?v=crm112"></script>
+  <script defer src="icons.js?v=crm112"></script>
+  <script defer src="agenda.js?v=crm112"></script>
+  <script defer src="clientes.js?v=crm112"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -102,11 +102,11 @@
         </div>
 
         <div class="dashboard-grid">
-          <article class="panel styles-panel"><div class="panel-head"><div><small>PERFIL DOS ATENDIMENTOS</small><h3>Estilos de tatuagem</h3></div></div><label class="style-revenue-toggle"><input id="showStyleRevenue" type="checkbox"> Mostrar faturamento por estilo</label><div id="stylesChart"></div><p id="styleRevenueNote" class="muted" hidden>O valor integral de uma venda aparece em cada estilo marcado. Não some essas linhas. Permuta, cortesia e retoque não entram no faturamento.</p></article>
           <article class="panel chart-panel"><div class="panel-head"><div><small>FATURAMENTO</small><h3>Vendas por mês</h3></div></div><div id="monthlyChart" class="chart"></div></article>
           <article class="panel distribution-panel"><div class="panel-head"><div><small>DISTRIBUIÇÃO</small><h3>Por cidade</h3></div></div><div id="cityChart" class="bar-list"></div><div class="distribution-divider"></div><div class="panel-head gender-head"><div><small>PORCENTAGEM GERAL</small><h3>Por gênero</h3></div></div><div id="genderChart" class="bar-list gender-chart"></div></article>
           <article class="panel payment-panel"><div class="panel-head"><div><small>FORMA DE PAGAMENTO</small><h3>Como recebeu</h3></div></div><div id="paymentChart" class="donut-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><div><small>ÚLTIMOS REGISTROS</small><h3>Vendas recentes</h3></div><button class="text-btn" data-page-link="vendas">Ver todas</button></div><div id="recentSales" class="recent-list"></div></article>
+          <article class="panel styles-panel"><div class="panel-head"><div><small>PERFIL DOS ATENDIMENTOS</small><h3>Estilos de tatuagem</h3></div></div><label class="style-revenue-toggle"><input id="showStyleRevenue" type="checkbox"> Mostrar faturamento por estilo</label><div id="stylesChart"></div><p id="styleRevenueNote" class="muted" hidden>O valor integral de uma venda aparece em cada estilo marcado. Não some essas linhas. Permuta, cortesia e retoque não entram no faturamento.</p></article>
+          <article class="panel recent-sales-panel"><div class="panel-head"><div><small>ÚLTIMOS REGISTROS</small><h3>Vendas recentes</h3></div><button class="text-btn" data-page-link="vendas">Ver todas</button></div><div id="recentSales" class="recent-list"></div></article>
         </div>
       </section>
 
@@ -211,7 +211,7 @@
     <p id="clientError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientDialog">Voltar</button><button type="submit" class="btn primary">Salvar cliente</button></div>
   </form></dialog>
   <dialog id="clientHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="clientHistoryTitle">Histórico do cliente</h3><button class="icon-btn" data-close="clientHistoryDialog" aria-label="Fechar">×</button></div><div id="clientDetails"></div><div id="clientLoyaltySummary"></div><div id="clientHistory"></div></div></dialog>
-<dialog id="clientMessageDialog" class="wide-dialog"><form id="clientMessageForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="clientMessageTitle">Mensagem para o cliente</h3><button type="button" class="icon-btn" data-close="clientMessageDialog" aria-label="Fechar">×</button></div><p id="clientMessageRecipient" class="muted"></p><label>Mensagem<textarea id="clientMessageText" rows="7" maxlength="4000" required></textarea></label><p id="clientMessageError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientMessageDialog">Voltar</button><button type="submit" class="btn whatsapp-btn">Abrir WhatsApp</button></div></form></dialog>
-<dialog id="birthdayDialog" class="wide-dialog"><form id="birthdayForm" class="dialog-content form-stack"><div class="panel-head"><div><p class="eyebrow" id="birthdayYear"></p><h3 id="birthdayTitle">Aniversário</h3></div><button type="button" class="icon-btn" data-close="birthdayDialog" aria-label="Fechar">×</button></div><label>Benefício do mês<input id="birthdayBenefit" maxlength="500" readonly></label><label>Mensagem<textarea id="birthdayMessage" rows="6" maxlength="4000"></textarea></label><button type="button" id="birthdayWhatsapp" class="btn ghost">Abrir WhatsApp</button><label class="art-ready-control"><input id="birthdaySent" type="checkbox"><span>Mensagem enviada</span></label><label class="art-ready-control"><input id="birthdayUsed" type="checkbox"><span>Bonificação utilizada</span></label><p id="birthdayError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="birthdayDialog">Voltar</button><button type="submit" class="btn primary">Salvar acompanhamento</button></div></form></dialog>
+<dialog id="clientMessageDialog" class="wide-dialog"><form id="clientMessageForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="clientMessageTitle">Mensagem para o cliente</h3><button type="button" class="icon-btn" data-close="clientMessageDialog" aria-label="Fechar">×</button></div><p id="clientMessageRecipient" class="muted"></p><label id="depositReminderField" hidden>Valor do sinal (R$)<input id="depositReminderValue" type="number" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="Em branco: 50% do valor da tatuagem"></label><label>Mensagem<textarea id="clientMessageText" rows="7" maxlength="4000" required></textarea></label><p id="clientMessageError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientMessageDialog">Voltar</button><button type="submit" class="btn whatsapp-btn">Abrir WhatsApp</button></div></form></dialog>
+<dialog id="birthdayDialog" class="wide-dialog"><form id="birthdayForm" class="dialog-content form-stack"><div class="panel-head"><div><p class="eyebrow" id="birthdayYear"></p><h3 id="birthdayTitle">Aniversário</h3></div><button type="button" class="icon-btn" data-close="birthdayDialog" aria-label="Fechar">×</button></div><label>Presente do mês<input id="birthdayBenefit" maxlength="500" readonly></label><label>Mensagem<textarea id="birthdayMessage" rows="6" maxlength="4000"></textarea></label><button type="button" id="birthdayWhatsapp" class="btn ghost">Abrir WhatsApp</button><label class="art-ready-control"><input id="birthdaySent" type="checkbox"><span>Mensagem enviada</span></label><label class="art-ready-control"><input id="birthdayUsed" type="checkbox"><span>Bonificação utilizada</span></label><p id="birthdayError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="birthdayDialog">Voltar</button><button type="submit" class="btn primary">Salvar acompanhamento</button></div></form></dialog>
 </body>
 </html>
