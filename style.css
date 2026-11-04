@@ -63,3 +63,8 @@ body.collaborator .bottom-nav{grid-template-columns:repeat(2,1fr)}
 @media(max-width:380px){.client-filters{grid-template-columns:1fr}}
 
 #clientPhone{color:#69d89d}
+
+/* V11.2: cadastro compacto e identificação visual */
+.gender-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;flex:none}.gender-icon .ui-icon{width:26px;height:26px;stroke-width:1.9}.gender-icon.gender-man{color:#77b9ff}.gender-icon.gender-woman{color:#f19fc4}.gender-icon.gender-unknown{color:#aaa}
+.client-label.city-jacobina{background:#187746;color:#fff;border-color:#26945d}.client-label.city-umburanas{background:#2468b1;color:#fff;border-color:#3a82ce}.client-label.city-ourolandia{background:#866500;color:#fff;border-color:#ac8414}
+.dashboard-grid>.payment-panel,.dashboard-grid>.styles-panel,.dashboard-grid>.recent-sales-panel{grid-column:1/-1}
