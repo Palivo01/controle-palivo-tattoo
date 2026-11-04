@@ -10,12 +10,12 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm112">
-  <script defer src="store.js?v=crm112"></script>
-  <script defer src="app.js?v=crm112"></script>
-  <script defer src="icons.js?v=crm112"></script>
-  <script defer src="agenda.js?v=crm112"></script>
-  <script defer src="clientes.js?v=crm112"></script>
+  <link rel="stylesheet" href="style.css?v=crm113">
+  <script defer src="store.js?v=crm113"></script>
+  <script defer src="app.js?v=crm113"></script>
+  <script defer src="icons.js?v=crm113"></script>
+  <script defer src="agenda.js?v=crm113"></script>
+  <script defer src="clientes.js?v=crm113"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -205,10 +205,11 @@
     <p id="appointmentError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="appointmentDialog">Voltar</button><button type="submit" class="btn primary">Salvar agendamento</button></div>
   </form></dialog>
   <dialog id="appointmentDeleteDialog"><div class="dialog-content"><p class="eyebrow">CONFIRMAÇÃO</p><h3>Excluir agendamento?</h3><p id="appointmentDeleteSummary"></p><p class="muted">Remove somente este agendamento. O cadastro do cliente e as vendas serão mantidos. Esta ação não pode ser desfeita.</p><p id="appointmentDeleteError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="appointmentDeleteDialog">Voltar</button><button id="confirmAppointmentDelete" type="button" class="btn danger">Excluir agendamento</button></div></div></dialog>
+  <dialog id="clientDeleteDialog"><div class="dialog-content"><p class="eyebrow">CONFIRMAÇÃO</p><h3>Excluir cliente?</h3><p id="clientDeleteName"></p><p class="muted">A exclusão é permitida apenas para cadastros sem vendas ou agendamentos vinculados. Esta ação não pode ser desfeita.</p><p id="clientDeleteError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientDeleteDialog">Voltar</button><button id="confirmClientDelete" type="button" class="btn danger">Excluir cliente</button></div></div></dialog>
   <dialog id="clientDialog" class="wide-dialog"><form id="clientForm" class="dialog-content form-stack">
     <div class="panel-head"><div><p class="eyebrow">CLIENTE</p><h3 id="clientTitle">Novo cliente</h3></div><button type="button" class="icon-btn" data-close="clientDialog" aria-label="Fechar">×</button></div><input id="clientId" type="hidden">
     <div class="form-grid"><label>Nome *<input id="clientName" required maxlength="150"></label><label>Gênero *<select id="clientGender" required><option value="">Selecione</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label><label>Data de nascimento<input id="clientBirthDate" type="date" min="1900-01-01"></label><label>WhatsApp<input id="clientPhone" type="tel" inputmode="tel" maxlength="25" placeholder="(74) 99999-9999"></label><label>Cidade<input id="clientCity" list="citiesList" maxlength="100"></label><label>Origem do cliente<select id="clientSource"><option value="">Não informado</option><option>Instagram</option><option>Indicação</option><option>WhatsApp</option><option>Site</option><option>Cliente recorrente</option><option>Cliente</option><option>Anúncio</option><option>Outro</option></select></label></div>
-    <p id="clientError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientDialog">Voltar</button><button type="submit" class="btn primary">Salvar cliente</button></div>
+    <p id="clientError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientDialog">Voltar</button><button id="deleteClientBtn" type="button" class="btn danger" hidden>Excluir cliente</button><button type="submit" class="btn primary">Salvar cliente</button></div>
   </form></dialog>
   <dialog id="clientHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="clientHistoryTitle">Histórico do cliente</h3><button class="icon-btn" data-close="clientHistoryDialog" aria-label="Fechar">×</button></div><div id="clientDetails"></div><div id="clientLoyaltySummary"></div><div id="clientHistory"></div></div></dialog>
 <dialog id="clientMessageDialog" class="wide-dialog"><form id="clientMessageForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="clientMessageTitle">Mensagem para o cliente</h3><button type="button" class="icon-btn" data-close="clientMessageDialog" aria-label="Fechar">×</button></div><p id="clientMessageRecipient" class="muted"></p><label id="depositReminderField" hidden>Valor do sinal (R$)<input id="depositReminderValue" type="number" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="Em branco: 50% do valor da tatuagem"></label><label>Mensagem<textarea id="clientMessageText" rows="7" maxlength="4000" required></textarea></label><p id="clientMessageError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientMessageDialog">Voltar</button><button type="submit" class="btn whatsapp-btn">Abrir WhatsApp</button></div></form></dialog>
