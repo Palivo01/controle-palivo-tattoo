@@ -134,8 +134,8 @@ function formatTime(value){return String(value||"").slice(0,5)}
 function formatWhatsapp(value){
  let digits=String(value||"").replace(/\D/g,"");
  if(digits.startsWith("55")&&(digits.length===12||digits.length===13))digits=digits.slice(2);
- if(digits.length===11)return `${digits.slice(0,2)} ${digits[2]} ${digits.slice(3,7)}-${digits.slice(7)}`;
- if(digits.length===10)return `${digits.slice(0,2)} ${digits.slice(2,6)}-${digits.slice(6)}`;
+ if(digits.length===11)return `(${digits.slice(0,2)}) ${digits[2]} ${digits.slice(3,7)}-${digits.slice(7)}`;
+ if(digits.length===10)return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
  return String(value||"");
 }
 function whatsappIcon(){return '<svg class="whatsapp-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12.04 2a9.84 9.84 0 0 0-8.47 14.84L2 22l5.28-1.52A9.95 9.95 0 1 0 12.04 2Zm0 18.16a8.25 8.25 0 0 1-4.2-1.15l-.3-.18-3.13.9.83-3.05-.2-.31a8.19 8.19 0 1 1 7 3.79Zm4.5-6.13c-.25-.12-1.46-.72-1.69-.8-.23-.09-.4-.13-.57.12-.17.25-.65.8-.8.96-.14.17-.29.19-.54.06-.25-.12-1.05-.39-2-1.24a7.48 7.48 0 0 1-1.39-1.73c-.14-.25-.01-.38.11-.51.11-.11.25-.29.37-.43.12-.15.17-.25.25-.42.08-.17.04-.31-.02-.43-.06-.13-.57-1.38-.78-1.89-.2-.49-.41-.42-.57-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.12.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.54.6.19 1.15.16 1.58.1.48-.07 1.46-.6 1.67-1.17.2-.58.2-1.07.14-1.17-.06-.11-.23-.17-.48-.3Z"/></svg>'}
