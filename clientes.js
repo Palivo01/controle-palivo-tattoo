@@ -151,8 +151,15 @@ function tomorrowAppointments(data,base=new Date()){
  const tomorrow=tomorrowDate(base);
  return data.agendamentos.filter(a=>a.data===tomorrow&&["Agendado","Confirmado"].includes(a.status)).sort((a,b)=>a.hora.localeCompare(b.hora));
 }
+function reminderAppointments(data,base=new Date()){
+ const today=Store.date(base),tomorrow=tomorrowDate(base);
+ return data.agendamentos.filter(a=>(a.data===today||a.data===tomorrow)&&["Agendado","Confirmado"].includes(a.status)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora));
+}
 function renderUpcomingReminders(){
- const data=Store.load(),rows=tomorrowAppointments(data),panel=$("upcomingReminders");
+ const data=Store.load(),rows=reminderAppointments(data),panel=$("upcomingReminders"),today=isoToday();
  panel.hidden=!rows.length;
- panel.innerHTML=rows.length?`<div class="reminder-heading"><div><span class="eyebrow">LEMBRETES</span><h3>${rows.length===1?"Você tem 1 atendimento amanhã":`Você tem ${rows.length} atendimentos amanhã`}</h3><p class="muted">${formatDate(tomorrowDate())}</p></div></div><div class="reminder-list">${rows.map(a=>{const c=data.clientes.find(c=>c.id===a.cliente_id);return `<div class="reminder-row"><div><strong>${esc(c?.nome||"Cliente")}</strong><span>${formatTime(a.hora)} · ${esc(a.cidade)}</span></div><button type="button" class="btn whatsapp-btn" data-client-message="${esc(a.id)}">${whatsappIcon()} Lembrar horário</button></div>`}).join("")}</div>`:"";
+ panel.innerHTML=rows.length?`<div class="reminder-heading"><span class="eyebrow">LEMBRETES</span><h3>Seus próximos atendimentos</h3></div>${[today,tomorrowDate()].map(day=>{
+ const group=rows.filter(a=>a.data===day);if(!group.length)return "";
+ return `<section class="reminder-group"><h4>${day===today?"Hoje":"Amanhã"} <small>${formatDate(day)}</small></h4><div class="reminder-list">${group.map(a=>{const c=data.clientes.find(c=>c.id===a.cliente_id);return `<div class="reminder-row"><div><strong>${esc(c?.nome||"Cliente")}</strong><span>${formatTime(a.hora)} · ${esc(a.cidade)}</span></div><button type="button" class="btn whatsapp-btn" data-client-message="${esc(a.id)}">${whatsappIcon()} Lembrar horário</button></div>`}).join("")}</div></section>`;
+ }).join("")}`:"";
 }
