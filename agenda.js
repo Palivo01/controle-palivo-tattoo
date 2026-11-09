@@ -20,14 +20,18 @@ function initWorkspace(){
   $("newAppointment").onclick=()=>openAppointment();$("newClient").onclick=()=>openClient();
   $("appointmentForm").onsubmit=saveAppointment;$("clientForm").onsubmit=saveClient;
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$(b.dataset.close).close());
-  for(const id of ["agendaDate","agendaView","agendaStatus"])$(id).onchange=renderAgenda;
+  for(const id of ["agendaDate","agendaStatus"])$(id).onchange=renderAgenda;
+  $("agendaLayout").onchange=()=>{const layout=$("agendaLayout").value;if(layout!=="list")$("agendaView").value=layout==="week-grid"?"week":"month";renderAgenda()};
+  $("agendaView").onchange=()=>{if($("agendaLayout").value!=="list")$("agendaLayout").value=$("agendaView").value==="week"?"week-grid":$("agendaView").value==="month"?"month-grid":"list";renderAgenda()};
+  clearInterval(initWorkspace.reminderClock);initWorkspace.reminderClock=setInterval(()=>{if(!document.hidden)renderUpcomingReminders()},60000);
+  document.onvisibilitychange=()=>{if(!document.hidden)renderUpcomingReminders()};
   $("agendaSearch").oninput=renderAgenda;$("clientSearch").oninput=renderClients;
   $("previousDate").onclick=()=>moveAgenda(-1);$("nextDate").onclick=()=>moveAgenda(1);
   $("todayAgenda").onclick=()=>{$("agendaDate").value=isoToday();renderAgenda()};
   $("appointmentDepositPaid").onchange=syncDepositField;
   $("confirmAppointmentDelete").onclick=deleteAppointment;
   $("appointmentDeleteDialog").addEventListener("close",()=>{appointmentDeleteId=""});
-  $("agendaList").onclick=e=>{const deposit=e.target.closest("[data-deposit-reminder]");if(deposit){openAppointmentMessage(deposit.dataset.depositReminder,"deposit");return}const message=e.target.closest("[data-client-message]");if(message)openAppointmentMessage(message.dataset.clientMessage);const b=e.target.closest("[data-appointment]"),del=e.target.closest("[data-delete-appointment]");if(b)openAppointment(b.dataset.appointment);if(del)confirmAppointmentDeletion(del.dataset.deleteAppointment)};
+  $("agendaList").onclick=e=>{const day=e.target.closest("[data-calendar-day]");if(day){$("agendaDate").value=day.dataset.calendarDay;$("agendaLayout").value="list";$("agendaView").value="day";renderAgenda();return}const deposit=e.target.closest("[data-deposit-reminder]");if(deposit){openAppointmentMessage(deposit.dataset.depositReminder,"deposit");return}const message=e.target.closest("[data-client-message]");if(message)openAppointmentMessage(message.dataset.clientMessage);const b=e.target.closest("[data-appointment]"),del=e.target.closest("[data-delete-appointment]");if(b)openAppointment(b.dataset.appointment);if(del)confirmAppointmentDeletion(del.dataset.deleteAppointment)};
   $("agendaList").onchange=async e=>{
     if(!e.target.matches("[data-art-ready]"))return;const input=e.target,pronta=input.checked;input.disabled=true;
     try{await Store.setArtReady(input.dataset.artReady,pronta);renderAgenda();toast(pronta?"Arte marcada como pronta.":"Arte marcada como pendente.")}
@@ -70,6 +74,17 @@ function renderAgenda(){
   const active=period.filter(a=>["Agendado","Confirmado"].includes(a.status));
   $("agendaMetrics").innerHTML=[["Agendamentos",period.length],["A confirmar",period.filter(a=>a.status==="Agendado").length],["Confirmados",period.filter(a=>a.status==="Confirmado").length],["Tempo reservado",duration(active.reduce((n,a)=>n+a.duracao,0))]].map(([label,value])=>`<div class="panel agenda-metric"><small>${label}</small><strong>${value}</strong></div>`).join("");
   $("agendaPeriod").textContent=range.label+` · ${rows.length} resultado(s)`;
+  const layout=$("agendaLayout").value;$("agendaList").classList.toggle("calendar-mode",layout!=="list");
+  if(layout!=="list"){
+    const bounds=calendarBounds($("agendaDate").value||isoToday(),layout);
+    const gridRows=d.agendamentos.filter(a=>{
+      const c=d.clientes.find(c=>c.id===a.cliente_id);
+      return a.data<=bounds.end&&appointmentEndDate(a)>=bounds.start&&(status==="all"||a.status===status)&&[c?.nome,c?.whatsapp,a.cidade,...a.estilos].join(" ").toLowerCase().includes(q);
+    });
+    $("agendaList").innerHTML=layout==="week-grid"?weeklyCalendar(gridRows,d.clientes,bounds):monthlyCalendar(gridRows,d.clientes,bounds);
+    if(layout==="week-grid")$("agendaList").querySelector(".week-scroll").scrollTop=7*48;
+    return;
+  }
   const days=[...new Set(rows.map(a=>a.data))];
   $("agendaList").innerHTML=days.length?days.map(day=>`<section class="agenda-day"><h3 class="day-label">${new Date(day+"T12:00:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})}</h3>${rows.filter(a=>a.data===day).map(a=>appointmentCard(a,d.clientes)).join("")}</section>`).join(""):'<div class="panel empty"><h3>Agenda livre por aqui.</h3><p>Nenhum atendimento encontrado para este período e filtros.</p></div>';
 }
@@ -175,4 +190,31 @@ function showClientHistory(id){
   const rows=d.agendamentos.filter(a=>a.cliente_id===id).sort((a,b)=>(b.data+b.hora).localeCompare(a.data+a.hora));
   const sales=d.vendas.filter(s=>s.cliente_id===id).sort((a,b)=>b.data_atendimento.localeCompare(a.data_atendimento));
   $("clientHistory").innerHTML=(isAdmin()?'<h4>Atendimentos registrados</h4>'+(sales.map(s=>`<div class="history-item"><strong>${formatDate(s.data_atendimento)} · ${duration(s.duracao_minutos)}</strong><span>${esc(s.cidade)} · ${esc(s.genero||"Não informado")}</span><div class="tags">${styleTags(s.estilos)}</div>${isAdmin()?`<small class="muted">${money(s.valor)} · ${esc(s.forma_pagamento)}</small>`:""}</div>`).join("")||'<p class="empty">Sem atendimentos registrados em vendas.</p>'):"")+'<h4>Agendamentos</h4>'+(rows.map(a=>`<div class="history-item"><strong>${formatDate(a.data)} · ${esc(formatTime(a.hora))}</strong><span>${esc(a.status)} · ${esc(a.cidade)} · Arte ${a.arte_pronta?"pronta":"pendente"} · ${a.sinal_pago?`Sinal pago: ${money(a.sinal_valor)}`:"Sinal pendente"}</span><div class="tags">${styleTags(a.estilos)}</div><small class="appointment-signature">Agendado por ${esc(a.criado_por||"Autoria não registrada")}</small></div>`).join("")||'<p class="empty">Nenhum agendamento registrado.</p>');$("clientHistoryDialog").showModal();
+}
+
+function calendarDay(date,offset){const d=new Date(date+"T12:00:00");d.setDate(d.getDate()+offset);return Store.date(d)}
+function calendarBounds(date,layout){
+ const d=new Date(date+"T12:00:00");if(layout==="month-grid")d.setDate(1);
+ d.setDate(d.getDate()-((d.getDay()+6)%7));const start=Store.date(d);
+ return {start,end:calendarDay(start,layout==="month-grid"?41:6),month:date.slice(0,7)};
+}
+function appointmentEndDate(a){const d=new Date(a.data+"T"+formatTime(a.hora)+":00");d.setMinutes(d.getMinutes()+Number(a.duracao));return Store.date(d)}
+function calendarSegments(rows,day){
+ return rows.map(a=>{const [h,m]=formatTime(a.hora).split(":").map(Number),start=(Date.parse(a.data+"T12:00:00")-Date.parse(day+"T12:00:00"))/86400000*1440+h*60+m;
+ return {a,start:Math.max(0,start),end:Math.min(1440,start+Number(a.duracao))}}).filter(x=>x.end>x.start).sort((a,b)=>a.start-b.start||a.end-b.end);
+}
+function calendarEventClass(a){const city=normalizeClientText(a.cidade);return `cal-${["jacobina","umburanas","ourolandia"].includes(city)?city:"other"} ${["Cancelado","Não compareceu"].includes(a.status)?"cal-inactive":""}`}
+function weeklyCalendar(rows,clients,bounds){
+ const days=Array.from({length:7},(_,i)=>calendarDay(bounds.start,i));
+ const heading=day=>new Date(day+"T12:00:00").toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"numeric"});
+ return `<div class="calendar-legend"><span>Jacobina</span><span>Umburanas</span><span>Ourolândia</span></div><div class="week-scroll" tabindex="0" aria-label="Grade semanal de horários"><div class="week-grid"><div class="week-corner">Horário</div>${days.map(day=>`<button class="week-heading ${day===isoToday()?"cal-today":""}" data-calendar-day="${day}">${heading(day)}</button>`).join("")}<div class="week-hours">${Array.from({length:24},(_,h)=>`<span style="top:${h*48}px">${String(h).padStart(2,"0")}:00</span>`).join("")}</div>${days.map(day=>{
+ const segments=calendarSegments(rows,day);let group=[],until=-1;
+ const finish=()=>{const lanes=[];for(const event of group){let lane=lanes.findIndex(end=>end<=event.start);if(lane<0)lane=lanes.length;lanes[lane]=event.end;event.lane=lane}for(const event of group)event.lanes=lanes.length;group=[]};
+ for(const event of segments){if(event.start>=until){finish();until=-1}group.push(event);until=Math.max(until,event.end)}finish();
+ return `<div class="week-day ${day===isoToday()?"cal-today-column":""}">${segments.map(({a,start,end,lane,lanes})=>{const c=clients.find(c=>c.id===a.cliente_id),name=c?.nome||"Cliente",label=`${name}, ${formatDate(day)}, ${formatTime(a.hora)} até ${endTime(a)}, ${a.cidade}, ${a.status}`;
+ return `<button class="week-event ${calendarEventClass(a)}" data-appointment="${esc(a.id)}" aria-label="${esc(label)}" title="${esc(label)}" style="top:${start/60*48}px;height:${Math.max(22,(end-start)/60*48-2)}px;left:calc(${lane/lanes*100}% + 2px);width:calc(${100/lanes}% - 4px)"><strong>${esc(name)}</strong><span>${esc(formatTime(a.hora))} · ${esc(a.cidade)}</span></button>`}).join("")}</div>`}).join("")}</div></div>`;
+}
+function monthlyCalendar(rows,clients,bounds){
+ return `<div class="calendar-legend"><span>Jacobina</span><span>Umburanas</span><span>Ourolândia</span></div><div class="month-scroll" tabindex="0" aria-label="Grade mensal de agendamentos"><div class="month-grid">${["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(day=>`<div class="month-heading">${day}</div>`).join("")}${Array.from({length:42},(_,i)=>{const day=calendarDay(bounds.start,i),segments=calendarSegments(rows,day);
+ return `<section class="month-day ${day.slice(0,7)!==bounds.month?"outside-month":""}"><button class="month-date ${day===isoToday()?"cal-today":""}" data-calendar-day="${day}" aria-label="Ver agendamentos de ${formatDate(day)}">${Number(day.slice(8))}</button>${segments.map(({a})=>{const name=clients.find(c=>c.id===a.cliente_id)?.nome||"Cliente",label=`${formatTime(a.hora)} ${name}, ${a.cidade}, ${a.status}`;return `<button class="month-event ${calendarEventClass(a)}" data-appointment="${esc(a.id)}" title="${esc(label)}" aria-label="${esc(label)}"><b>${a.data===day?esc(formatTime(a.hora)):"Continuação"}</b> ${esc(name)}<small>${esc(a.cidade)}</small></button>`}).join("")}</section>`}).join("")}</div></div>`;
 }
