@@ -10,12 +10,12 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm113">
-  <script defer src="store.js?v=crm113"></script>
-  <script defer src="app.js?v=crm113"></script>
-  <script defer src="icons.js?v=crm113"></script>
-  <script defer src="agenda.js?v=crm113"></script>
-  <script defer src="clientes.js?v=crm113"></script>
+  <link rel="stylesheet" href="style.css?v=crm114">
+  <script defer src="store.js?v=crm114"></script>
+  <script defer src="app.js?v=crm114"></script>
+  <script defer src="icons.js?v=crm114"></script>
+  <script defer src="agenda.js?v=crm114"></script>
+  <script defer src="clientes.js?v=crm114"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -158,13 +158,13 @@
         <article class="panel purchase-history"><div class="panel-head"><div><small>HISTÓRICO</small><h3>Entradas recentes</h3></div></div><div id="purchaseList" class="recent-list"></div></article>
       </section>
 
-      <section id="upcomingReminders" class="panel upcoming-reminders" role="region" aria-label="Atendimentos de amanhã" hidden></section>
+      <section id="upcomingReminders" class="panel upcoming-reminders" role="region" aria-label="Atendimentos de hoje e amanhã" hidden></section>
       <section id="page-agenda" class="page">
         <div class="page-head"><div><p class="eyebrow">SEU TEMPO, BEM ORGANIZADO</p><h2>Agenda</h2><p class="muted">Atendimentos do estúdio, em um só lugar.</p></div><button id="newAppointment" class="btn primary">＋ Agendar cliente</button></div>
         <div class="agenda-metrics" id="agendaMetrics"></div>
         <div class="panel agenda-toolbar">
           <div class="date-navigation"><button id="previousDate" class="btn ghost" aria-label="Período anterior">‹</button><input type="date" id="agendaDate" aria-label="Data da agenda"><button id="nextDate" class="btn ghost" aria-label="Próximo período">›</button><button id="todayAgenda" class="btn ghost">Hoje</button></div>
-          <label>Visualização<select id="agendaView"><option value="day">Dia</option><option value="week" selected>Semana</option><option value="month">Mês</option><option value="all">Todos os registros</option></select></label>
+          <label>Formato<select id="agendaLayout"><option value="list">Lista atual</option><option value="week-grid">Grade semanal</option><option value="month-grid">Grade mensal</option></select></label><label>Período<select id="agendaView"><option value="day">Dia</option><option value="week" selected>Semana</option><option value="month">Mês</option><option value="all">Todos os registros</option></select></label>
           <label>Status<select id="agendaStatus"><option value="all">Todos</option><option>Agendado</option><option>Confirmado</option><option>Concluído</option><option>Cancelado</option><option>Não compareceu</option></select></label>
           <label class="agenda-search">Buscar<input id="agendaSearch" type="search" placeholder="Cliente, cidade ou estilo"></label>
           <button id="printAgenda" class="btn ghost">Imprimir agenda</button>
