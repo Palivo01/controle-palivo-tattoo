@@ -85,3 +85,5 @@ a.whatsapp-contact,a.whatsapp-contact:hover,a.whatsapp-contact:focus,a.whatsapp-
 /* V11.7: data nos agendamentos e ícones de gênero preenchidos. */
 .appointment-date{display:block;font-size:12px;font-weight:700;color:#e7c77e;margin-bottom:9px;white-space:nowrap}.gender-icon .ui-icon{fill:currentColor;stroke:currentColor;stroke-width:1.4}
 @media(max-width:680px){.appointment-date{font-size:11px}.appointment-time{min-width:80px}.appointment-main{flex-basis:calc(100% - 92px)}}
+
+.gender-icon .client-filled-icon{fill:currentColor;stroke:none}

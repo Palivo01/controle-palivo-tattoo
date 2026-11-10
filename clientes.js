@@ -147,7 +147,7 @@ function whatsappContact(c){
  try{return `<a class="whatsapp-contact" href="https://wa.me/${whatsappDigits(c.whatsapp)}" target="_blank" rel="noopener noreferrer">${whatsappIcon()}<span>${esc(formatWhatsapp(c.whatsapp))}</span></a>`}
  catch{return `<span class="whatsapp-contact">${whatsappIcon()}<span>${esc(formatWhatsapp(c.whatsapp))}</span></span>`}
 }
-function genderBadge(gender){const value=["Homem","Mulher"].includes(gender)?gender:"Não informado";return `<span class="gender-icon gender-${value==="Homem"?"man":value==="Mulher"?"woman":"unknown"}" role="img" aria-label="${esc(value)}" title="${esc(value)}">${icon("clientes")}</span>`}
+function genderBadge(gender){const value=["Homem","Mulher"].includes(gender)?gender:"Não informado";return `<span class="gender-icon gender-${value==="Homem"?"man":value==="Mulher"?"woman":"unknown"}" role="img" aria-label="${esc(value)}" title="${esc(value)}">${filledClientIcon()}</span>`}
 function cityBadge(city){const key=clientCityKey({cidade:city}),value=key==="__none"?"Cidade não informada":city;return `<span class="client-label city-${key==="jacobina"?"jacobina":key==="ourolandia"?"ourolandia":key==="umburanas"?"umburanas":"other"}">${esc(value)}</span>`}
 function tomorrowDate(base=new Date()){const d=new Date(base);d.setDate(d.getDate()+1);return Store.date(d)}
 function tomorrowAppointments(data,base=new Date()){
@@ -166,3 +166,5 @@ function renderUpcomingReminders(){
  return `<section class="reminder-group"><h4>${day===today?"Hoje":"Amanhã"} <small>${formatDate(day)}</small></h4><div class="reminder-list">${group.map(a=>{const c=data.clientes.find(c=>c.id===a.cliente_id);return `<div class="reminder-row"><div><strong>${esc(c?.nome||"Cliente")}</strong><span>${formatTime(a.hora)} · ${esc(a.cidade)}</span></div><button type="button" class="btn whatsapp-btn" data-client-message="${esc(a.id)}">${whatsappIcon()} Lembrar horário</button></div>`}).join("")}</div></section>`;
  }).join("")}`:"";
 }
+
+function filledClientIcon(){return '<svg class="ui-icon client-filled-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" focusable="false"><circle cx="12" cy="6.5" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></svg>'}
