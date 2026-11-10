@@ -12,6 +12,28 @@ const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov
 const PAYMENT_COLORS = ["#c6a15b","#e5ca8e","#9b7a42","#746247","#a7a49d","#66502d","#dfcda5","#775e31"];
 const NON_REVENUE_PAYMENTS = new Set(["Permuta","Cortesia","Retoque"]);
 
+const MIXED_METHODS=["PIX","Dinheiro","Cartão de débito","Cartão de crédito"];
+function paymentParts(s){return s.forma_pagamento==="Misto"&&Array.isArray(s.pagamentos)&&s.pagamentos.length===2?s.pagamentos:[{forma:s.forma_pagamento||"Não informado",valor:s.valor}]}
+function salePaymentDescription(s){return s.forma_pagamento==="Misto"?"Misto: "+paymentParts(s).map(p=>`${p.forma} ${money(p.valor)}`).join(" + "):s.forma_pagamento}
+function validateMixedPayments(parts,total){
+ if(!Array.isArray(parts)||parts.length!==2)throw new Error("Informe as duas parcelas do pagamento misto.");
+ const cents=v=>{const n=Number(v);if(!Number.isFinite(n)||n<=0||Math.abs(n*100-Math.round(n*100))>0.00001)throw new Error("Informe valores positivos com até duas casas decimais.");return Math.round(n*100)};
+ if(parts.some(p=>!MIXED_METHODS.includes(p.forma))||parts[0].forma===parts[1].forma)throw new Error("Escolha duas formas de pagamento diferentes.");
+ if(parts.reduce((sum,p)=>sum+cents(p.valor),0)!==cents(total))throw new Error("A soma das duas parcelas deve ser igual ao valor da venda.");
+ return parts.map(p=>({forma:p.forma,valor:Number(p.valor)}));
+}
+function mixedPaymentSummary(){
+ const sum=Number($("paymentValue1").value||0)+Number($("paymentValue2").value||0),total=Number($("saleValue").value||0);
+ $("mixedPaymentSummary").textContent=`Total dividido: ${money(sum)} · Valor da venda: ${money(total)}`;
+ $("mixedPaymentSummary").classList.toggle("invalid",Math.round(sum*100)!==Math.round(total*100));
+}
+function syncSalePayment(initialize=false){
+ const mixed=$("salePayment").value==="Misto",fields=$("mixedPaymentFields");fields.hidden=!mixed;fields.disabled=!mixed;
+ if(mixed&&initialize){const total=Math.round(Number($("saleValue").value||0)*100),first=Math.floor(total/2);$("paymentMethod1").value="PIX";$("paymentMethod2").value="Dinheiro";$("paymentValue1").value=first?(first/100).toFixed(2):"";$("paymentValue2").value=total-first?((total-first)/100).toFixed(2):""}
+ mixedPaymentSummary();
+}
+function readSalePayments(){return $("salePayment").value==="Misto"?validateMixedPayments([1,2].map(i=>({forma:$("paymentMethod"+i).value,valor:$("paymentValue"+i).value})),$("saleValue").value):[]}
+
 const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], deleteId:null, purchaseDeleteId:null };
 const $ = (id) => document.getElementById(id);
 const money = (n) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(n)||0);
@@ -276,15 +298,15 @@ function renderCityBars(items,total){
   $("cityChart").innerHTML=items.slice(0,6).map(([name,val])=>`<div class="bar-row ${cityColorClass(name)}"><span>${esc(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${total?val/total*100:0}%"></div></div><span class="bar-value">${money(val)}</span></div>`).join("")||'<div class="empty">Sem dados.</div>';
 }
 function renderPaymentDonut(rows){
-  const items=Object.entries(rows.reduce((counts,row)=>{const method=row.forma_pagamento||"Não informado";counts[method]=(counts[method]||0)+1;return counts},{})).sort((a,b)=>b[1]-a[1]),total=rows.length;
+  const items=Object.entries(rows.reduce((counts,row)=>{for(const p of paymentParts(row))counts[p.forma]=(counts[p.forma]||0)+1;return counts},{})).sort((a,b)=>b[1]-a[1]),total=items.reduce((sum,[,n])=>sum+n,0);
   if(!total){$("paymentChart").innerHTML='<div class="empty">Sem dados.</div>';return}
   let pos=0;const parts=items.map(([,count],i)=>{const start=pos;pos+=count/total*100;return `${PAYMENT_COLORS[i%PAYMENT_COLORS.length]} ${start}% ${pos}%`});
   $("paymentChart").innerHTML=`<div class="donut" style="background:conic-gradient(${parts.join(",")})"></div><div class="legend">${items.slice(0,6).map(([name,count],i)=>`<div class="legend-row"><span><i class="dot" style="background:${PAYMENT_COLORS[i%PAYMENT_COLORS.length]}"></i>${esc(name)}</span><b>${Math.round(count/total*100)}% <small>${count} ${count===1?"pagamento":"pagamentos"}</small></b></div>`).join("")}</div>`;
 }
 function renderSales(){
   const q=$("salesSearch").value.toLowerCase().trim();
-  const rows=state.sales.filter(s=>[s.cliente,s.cidade,s.forma_pagamento].join(" ").toLowerCase().includes(q));
-  $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span></div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><label class="art-ready-control compact invoice-control"><input type="checkbox" data-invoice="${esc(s.id)}" ${s.nf_emitida?"checked":""}><span>Nota fiscal emitida</span></label><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar">✎</button><button data-delete="${s.id}" class="delete" title="Excluir">×</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';
+  const rows=state.sales.filter(s=>[s.cliente,s.cidade,salePaymentDescription(s)].join(" ").toLowerCase().includes(q));
+  $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span>${s.forma_pagamento==="Misto"?`<small class="sale-payment-detail">${esc(salePaymentDescription(s))}</small>`:""}</div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><label class="art-ready-control compact invoice-control"><input type="checkbox" data-invoice="${esc(s.id)}" ${s.nf_emitida?"checked":""}><span>Nota fiscal emitida</span></label><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar">✎</button><button data-delete="${s.id}" class="delete" title="Excluir">×</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';
 }
 function renderStock(){
   const low=state.stock.filter(s=>safeNumber(s.quantidade_atual)<10).length;
@@ -314,13 +336,13 @@ function addCartridgeRow(cartuchoId="",quantidade=1){
 function resetSaleForm(){
   renderSaleClients();
   setStyles("saleStyles",[]);
-  $("saleForm").reset();resetClientPicker("sale");$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;syncSaleClient();
+  $("saleForm").reset();resetClientPicker("sale");$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;syncSaleClient();syncSalePayment();
 }
 async function saveSale(e){
   e.preventDefault();if(!isAdmin())return;const form=e.currentTarget;setBusy(form,true);
   const id=$("saleId").value;
-  let durationMinutes;try{if(!$("saleClient").value)throw new Error("Selecione um cliente cadastrado.");durationMinutes=readDuration()}catch(error){toast(error.message,"error");setBusy(form,false);return}
-  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente_id:$("saleClient").value,cliente:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.nome||"",genero:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.genero||"Não informado",cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,duracao_minutos:durationMinutes,estilos:readStyles("saleStyles"),nf_emitida:$("saleInvoice").checked,observacoes:$("saleNotes").value.trim()||null};
+  let durationMinutes,payments;try{payments=readSalePayments();if(!$("saleClient").value)throw new Error("Selecione um cliente cadastrado.");durationMinutes=readDuration()}catch(error){toast(error.message,"error");setBusy(form,false);return}
+  const payload={user_id:state.user.id,data_atendimento:$("saleDate").value,cliente_id:$("saleClient").value,cliente:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.nome||"",genero:Store.load().clientes.find(c=>c.id===$("saleClient").value)?.genero||"Não informado",cidade:$("saleCity").value.trim(),valor:Number($("saleValue").value),forma_pagamento:$("salePayment").value,pagamentos:payments,duracao_minutos:durationMinutes,estilos:readStyles("saleStyles"),nf_emitida:$("saleInvoice").checked,observacoes:$("saleNotes").value.trim()||null};
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
     const saleId=id||Store.uid();$("saleId").value=saleId;
@@ -352,6 +374,7 @@ function editSale(id){
   setStyles("saleStyles",s.estilos||[]);
   renderSaleClients(s.cliente_id||"");
   $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente_id||"";$("saleGender").value=Store.load().clientes.find(c=>c.id===s.cliente_id)?.genero||s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";$("saleInvoice").checked=s.nf_emitida===true;
+  syncSalePayment();if(s.forma_pagamento==="Misto")for(const [i,part] of (s.pagamentos||[]).entries()){if(i>1)break;$("paymentMethod"+(i+1)).value=part.forma;$("paymentValue"+(i+1)).value=part.valor}mixedPaymentSummary();
   $("cartridgeRows").innerHTML="";state.usages.filter(u=>u.venda_id===id).forEach(u=>addCartridgeRow(u.cartucho_id,u.quantidade));if(!$("cartridgeRows").children.length)addCartridgeRow();
   $("saleFormTitle").textContent="Editar venda";$("cancelEdit").hidden=false;showPage("nova-venda");window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -389,6 +412,9 @@ function bindEvents(){
   document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
   document.querySelectorAll("[data-page-link]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageLink));
   document.querySelectorAll(".jump-sale").forEach(b=>b.onclick=()=>{resetSaleForm();showPage("nova-venda")});
+  $("salePayment").onchange=()=>syncSalePayment(true);
+  for(const id of ["paymentMethod1","paymentMethod2","paymentValue1","paymentValue2"])$(id).oninput=mixedPaymentSummary;
+  $("saleValue").oninput=()=>{if($("salePayment").value==="Misto"){const rest=Math.round(Number($("saleValue").value||0)*100)-Math.round(Number($("paymentValue1").value||0)*100);$("paymentValue2").value=rest>0?(rest/100).toFixed(2):"";mixedPaymentSummary()}};
   $("saleForm").addEventListener("submit",saveSale);$("purchaseForm").addEventListener("submit",savePurchase);
   $("addCartridgeRow").onclick=()=>addCartridgeRow();$("cancelEdit").onclick=()=>{resetSaleForm();showPage("vendas")};
   $("salesSearch").oninput=renderSales;
