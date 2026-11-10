@@ -81,3 +81,7 @@ a.whatsapp-contact,a.whatsapp-contact:hover,a.whatsapp-contact:focus,a.whatsapp-
 @media(prefers-reduced-motion:reduce){.client-card-compact{transition:none}.client-card-compact:hover,.client-card-compact:active{transform:none}}
 
 .mixed-payment{border:1px solid #635031;border-radius:14px;padding:18px;background:linear-gradient(120deg,#292215,#171612);margin:0}.mixed-payment legend{color:#e7c77e;padding:0 8px;font-weight:700;font-size:13px}.mixed-payment[hidden]{display:none}.mixed-payment-summary{margin:4px 0 0;color:#86d7a2;font-size:12px;line-height:1.6}.mixed-payment-summary.invalid{color:#efac83}.sale-payment-detail{display:block;color:#d9c38f!important;white-space:normal;line-height:1.5;margin-top:5px}
+
+/* V11.7: data nos agendamentos e ícones de gênero preenchidos. */
+.appointment-date{display:block;font-size:12px;font-weight:700;color:#e7c77e;margin-bottom:9px;white-space:nowrap}.gender-icon .ui-icon{fill:currentColor;stroke:currentColor;stroke-width:1.4}
+@media(max-width:680px){.appointment-date{font-size:11px}.appointment-time{min-width:80px}.appointment-main{flex-basis:calc(100% - 92px)}}
