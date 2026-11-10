@@ -4,6 +4,7 @@ const isInvalidCity=v=>["homem","mulher","nao informado","masculino","feminino"]
 const clientCityKey=c=>!c.cidade?.trim()||isInvalidCity(c.cidade)?"__none":normalizeClientText(c.cidade);
 const birthMonth=c=>Number(String(c.data_nascimento||"").slice(5,7));
 const formatBirthday=value=>{const parts=String(value||"").split("-");return parts.length===3?`${parts[2]}/${parts[1]}`:""};
+const canSendBirthday=(c,base=new Date())=>!!c&&birthMonth(c)===base.getMonth()+1;
 const birthdayRecord=c=>c?.aniversario_registros?.[new Date().getFullYear()]||{};
 const BIRTHDAY_BENEFIT="20% de desconto em uma tattoo durante todo o mês de aniversário";
 let messageClientId="",birthdayClientId="",birthdayTrackingYear=0,depositMessageAppointmentId="";
@@ -68,6 +69,7 @@ function initClientTools(){
     const button=$("birthdayWhatsapp"),id=birthdayClientId,year=birthdayTrackingYear;
     try{
       button.disabled=true;
+      if(!canSendBirthday(Store.load().clientes.find(c=>c.id===id)))throw new Error("A mensagem de aniversário só pode ser enviada no mês de aniversário do cliente.");
       launchClientWhatsapp(id,$("birthdayMessage").value);
       await Store.saveBirthday(id,year,{beneficio:BIRTHDAY_BENEFIT,mensagem_enviada:true});
       if(birthdayClientId===id&&birthdayTrackingYear===year)$("birthdaySent").checked=true;renderClients();toast("Abertura no WhatsApp registrada.");
@@ -76,7 +78,7 @@ function initClientTools(){
   $("birthdayForm").onsubmit=async e=>{
     e.preventDefault();const form=e.currentTarget;$("birthdayError").hidden=true;
     try{
-      setBusy(form,true);await Store.saveBirthday(birthdayClientId,birthdayTrackingYear,{beneficio:$("birthdayBenefit").value.trim(),mensagem_enviada:$("birthdaySent").checked,bonus_utilizado:$("birthdayUsed").checked});
+      if(!canSendBirthday(Store.load().clientes.find(c=>c.id===birthdayClientId)))throw new Error("A mensagem de aniversário só está disponível no mês do cliente.");setBusy(form,true);await Store.saveBirthday(birthdayClientId,birthdayTrackingYear,{beneficio:$("birthdayBenefit").value.trim(),mensagem_enviada:$("birthdaySent").checked,bonus_utilizado:$("birthdayUsed").checked});
       $("birthdayDialog").close();renderClients();toast("Acompanhamento salvo.");
     }catch(err){$("birthdayError").textContent=err.message;$("birthdayError").hidden=false}finally{setBusy(form,false)}
   };
@@ -122,6 +124,7 @@ function makeBirthdayMessage(c){
 }
 function openBirthday(id){
   const c=Store.load().clientes.find(c=>c.id===id);if(!c)return;
+  if(!canSendBirthday(c)){toast("A mensagem de aniversário só está disponível no mês de aniversário do cliente.","error");return}
   birthdayClientId=id;birthdayTrackingYear=new Date().getFullYear();const record=birthdayRecord(c);
   $("birthdayTitle").textContent=c.nome;$("birthdayYear").textContent=`Presente de ${birthdayMonthName(c)} · ${birthdayTrackingYear}`;
   $("birthdayWhatsapp").className="btn whatsapp-btn";$("birthdayWhatsapp").innerHTML=whatsappIcon()+" Abrir WhatsApp";
