@@ -298,11 +298,20 @@ function renderCityBars(items,total){
   $("cityChart").innerHTML=items.slice(0,6).map(([name,val])=>`<div class="bar-row ${cityColorClass(name)}"><span>${esc(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${total?val/total*100:0}%"></div></div><span class="bar-value">${money(val)}</span></div>`).join("")||'<div class="empty">Sem dados.</div>';
 }
 function renderPaymentDonut(rows){
-  const items=Object.entries(rows.reduce((counts,row)=>{for(const p of paymentParts(row))counts[p.forma]=(counts[p.forma]||0)+1;return counts},{})).sort((a,b)=>b[1]-a[1]),total=items.reduce((sum,[,n])=>sum+n,0);
+  const totals=new Map();
+  for(const row of rows){
+    if(NON_REVENUE_PAYMENTS.has(row.forma_pagamento))continue;
+    for(const part of paymentParts(row)){
+      const cents=Math.round(safeNumber(part.valor)*100);
+      if(cents>0)totals.set(part.forma,(totals.get(part.forma)||0)+cents);
+    }
+  }
+  const items=[...totals].sort((a,b)=>b[1]-a[1]),total=items.reduce((sum,[,cents])=>sum+cents,0);
   if(!total){$("paymentChart").innerHTML='<div class="empty">Sem dados.</div>';return}
-  let pos=0;const parts=items.map(([,count],i)=>{const start=pos;pos+=count/total*100;return `${PAYMENT_COLORS[i%PAYMENT_COLORS.length]} ${start}% ${pos}%`});
-  $("paymentChart").innerHTML=`<div class="donut" style="background:conic-gradient(${parts.join(",")})"></div><div class="legend">${items.slice(0,6).map(([name,count],i)=>`<div class="legend-row"><span><i class="dot" style="background:${PAYMENT_COLORS[i%PAYMENT_COLORS.length]}"></i>${esc(name)}</span><b>${Math.round(count/total*100)}% <small>${count} ${count===1?"pagamento":"pagamentos"}</small></b></div>`).join("")}</div>`;
+  let pos=0;const parts=items.map(([,cents],i)=>{const start=pos;pos+=cents/total*100;return `${PAYMENT_COLORS[i%PAYMENT_COLORS.length]} ${start}% ${pos}%`});
+  $("paymentChart").innerHTML=`<div class="donut" role="img" aria-label="Distribuição do valor recebido por forma de pagamento" style="background:conic-gradient(${parts.join(",")})"></div><div class="legend">${items.map(([name,cents],i)=>`<div class="legend-row"><span><i class="dot" style="background:${PAYMENT_COLORS[i%PAYMENT_COLORS.length]}"></i>${esc(name)}</span><b>${(cents/total*100).toLocaleString("pt-BR",{maximumFractionDigits:1})}% <small>${money(cents/100)}</small></b></div>`).join("")}</div>`;
 }
+
 function renderSales(){
   const q=$("salesSearch").value.toLowerCase().trim();
   const rows=state.sales.filter(s=>[s.cliente,s.cidade,salePaymentDescription(s)].join(" ").toLowerCase().includes(q));
