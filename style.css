@@ -79,3 +79,5 @@ body.collaborator .bottom-nav{grid-template-columns:repeat(2,1fr)}
 a.whatsapp-contact,a.whatsapp-contact:hover,a.whatsapp-contact:focus,a.whatsapp-contact:visited{text-decoration:none}.whatsapp-contact span{text-decoration:none}
 @media(hover:hover){.client-card-compact:hover{transform:translateY(-4px);border-color:#a78747;box-shadow:0 14px 28px #0005,inset 0 1px 0 #ffffff15}}
 @media(prefers-reduced-motion:reduce){.client-card-compact{transition:none}.client-card-compact:hover,.client-card-compact:active{transform:none}}
+
+.mixed-payment{border:1px solid #635031;border-radius:14px;padding:18px;background:linear-gradient(120deg,#292215,#171612);margin:0}.mixed-payment legend{color:#e7c77e;padding:0 8px;font-weight:700;font-size:13px}.mixed-payment[hidden]{display:none}.mixed-payment-summary{margin:4px 0 0;color:#86d7a2;font-size:12px;line-height:1.6}.mixed-payment-summary.invalid{color:#efac83}.sale-payment-detail{display:block;color:#d9c38f!important;white-space:normal;line-height:1.5;margin-top:5px}
