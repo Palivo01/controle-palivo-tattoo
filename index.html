@@ -10,12 +10,13 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm1171">
-  <script defer src="store.js?v=crm1171"></script>
-  <script defer src="app.js?v=crm1171"></script>
-  <script defer src="icons.js?v=crm1171"></script>
-  <script defer src="agenda.js?v=crm1171"></script>
-  <script defer src="clientes.js?v=crm1171"></script>
+  <link rel="stylesheet" href="style.css?v=crm118">
+  <script defer src="store.js?v=crm118"></script>
+  <script defer src="app.js?v=crm118"></script>
+  <script defer src="icons.js?v=crm118"></script>
+  <script defer src="agenda.js?v=crm118"></script>
+  <script defer src="clientes.js?v=crm118"></script>
+  <script defer src="estoque.js?v=crm118"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -140,9 +141,10 @@
       </section>
 
       <section id="page-estoque" class="admin-only page">
-        <div class="page-head"><div><p class="eyebrow">MATERIAIS</p><h2>Estoque de cartuchos</h2><p class="muted">As saídas são calculadas automaticamente pelas vendas.</p></div><button class="btn primary" data-page-link="compras">＋ Registrar entrada</button></div>
+        <div class="page-head"><div><p class="eyebrow">MATERIAIS</p><h2>Estoque de cartuchos</h2><p class="muted">Confira os materiais e ajuste a contagem física quando necessário.</p></div><button class="btn primary" data-page-link="compras">＋ Registrar entrada</button></div>
+        <button id="newStockType" class="btn ghost stock-new-type" type="button">Novo tipo de cartucho</button>
         <div id="stockSummary" class="stock-summary"></div>
-        <div id="stockGrid"></div>
+        <div id="stockAuditSummary" class="stock-audit panel"></div><div id="stockGrid"></div>
       </section>
 
       <section id="page-compras" class="admin-only page">
@@ -215,5 +217,8 @@
   <dialog id="clientHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="clientHistoryTitle">Histórico do cliente</h3><button class="icon-btn" data-close="clientHistoryDialog" aria-label="Fechar">×</button></div><div id="clientDetails"></div><div id="clientLoyaltySummary"></div><div id="clientHistory"></div></div></dialog>
 <dialog id="clientMessageDialog" class="wide-dialog"><form id="clientMessageForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="clientMessageTitle">Mensagem para o cliente</h3><button type="button" class="icon-btn" data-close="clientMessageDialog" aria-label="Fechar">×</button></div><p id="clientMessageRecipient" class="muted"></p><label id="depositReminderField" hidden>Valor do sinal (R$)<input id="depositReminderValue" type="number" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="Em branco: 50% do valor da tatuagem"></label><label>Mensagem<textarea id="clientMessageText" rows="7" maxlength="4000" required></textarea></label><p id="clientMessageError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="clientMessageDialog">Voltar</button><button type="submit" class="btn whatsapp-btn">Abrir WhatsApp</button></div></form></dialog>
 <dialog id="birthdayDialog" class="wide-dialog"><form id="birthdayForm" class="dialog-content form-stack"><div class="panel-head"><div><p class="eyebrow" id="birthdayYear"></p><h3 id="birthdayTitle">Aniversário</h3></div><button type="button" class="icon-btn" data-close="birthdayDialog" aria-label="Fechar">×</button></div><label>Presente do mês<input id="birthdayBenefit" maxlength="500" readonly></label><label>Mensagem<textarea id="birthdayMessage" rows="6" maxlength="4000"></textarea></label><button type="button" id="birthdayWhatsapp" class="btn ghost">Abrir WhatsApp</button><label class="art-ready-control"><input id="birthdaySent" type="checkbox"><span>Mensagem enviada</span></label><label class="art-ready-control"><input id="birthdayUsed" type="checkbox"><span>Bonificação utilizada</span></label><p id="birthdayError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="birthdayDialog">Voltar</button><button type="submit" class="btn primary">Salvar acompanhamento</button></div></form></dialog>
+<dialog id="stockCountDialog" class="wide-dialog"><form id="stockCountForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="stockCountTitle">Corrigir saldo</h3><button type="button" class="icon-btn" data-close="stockCountDialog" aria-label="Fechar">×</button></div><p id="stockCurrentBalance"></p><label>Quantidade contada no estoque físico<input id="stockPhysicalCount" type="number" inputmode="numeric" min="0" max="1000000" step="1" required></label><p id="stockCountDifference" class="muted" aria-live="polite"></p><label>Motivo do ajuste<textarea id="stockCountReason" minlength="3" maxlength="500" required placeholder="Ex.: conferência física, perda ou material não registrado"></textarea></label><p id="stockCountError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="stockCountDialog">Voltar</button><button type="submit" class="btn primary">Salvar contagem</button></div></form></dialog>
+<dialog id="stockHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="stockHistoryTitle">Movimentações</h3><button class="icon-btn" data-close="stockHistoryDialog" aria-label="Fechar">×</button></div><div id="stockHistory"></div></div></dialog>
+<dialog id="stockTypeDialog" class="wide-dialog"><form id="stockTypeForm" class="dialog-content form-stack"><div class="panel-head"><h3>Novo tipo de cartucho</h3><button type="button" class="icon-btn" data-close="stockTypeDialog" aria-label="Fechar">×</button></div><label>Tipo<input id="stockTypeName" maxlength="8" placeholder="Ex.: 9RS" required autocapitalize="characters"></label><p class="muted">O saldo começa em zero. Depois, registre a entrada das unidades.</p><p id="stockTypeError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="stockTypeDialog">Voltar</button><button type="submit" class="btn primary">Cadastrar tipo</button></div></form></dialog>
 </body>
 </html>

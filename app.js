@@ -5,8 +5,8 @@ const SUPABASE_KEY = "sb_publishable_G36NEdVkDlqE-A6zxD31Vg_oxLX8gAm";
 const SESSION_KEY = "palivo_supabase_session";
 const DEFAULT_CARTRIDGES = [
   ["3RL",0],["5RL",0],["7RL",0],["9RL",0],["13RL",0],
-  ["7RM",0],["9RM",0],["11RM",0],["13RM",0],["15RM",0],["21RM",0],
-  ["7RS",0],["14RS",0]
+  ["9RM",0],["11RM",0],["13RM",0],["15RM",0],["21RM",0],
+  ["14RS",0]
 ];
 const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const PAYMENT_COLORS = ["#c6a15b","#e5ca8e","#9b7a42","#746247","#a7a49d","#66502d","#dfcda5","#775e31"];
@@ -34,7 +34,7 @@ function syncSalePayment(initialize=false){
 }
 function readSalePayments(){return $("salePayment").value==="Misto"?validateMixedPayments([1,2].map(i=>({forma:$("paymentMethod"+i).value,valor:$("paymentValue"+i).value})),$("saleValue").value):[]}
 
-const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], deleteId:null, purchaseDeleteId:null };
+const state = { session:null, user:null, sales:[], cartridges:[], usages:[], purchases:[], stock:[], adjustments:[], deleteId:null, purchaseDeleteId:null };
 const $ = (id) => document.getElementById(id);
 const money = (n) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(n)||0);
 const compactMoney = (n) => safeNumber(n)>=1000?`R$ ${(safeNumber(n)/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})} mil`:`R$ ${safeNumber(n).toLocaleString("pt-BR",{maximumFractionDigits:0})}`;
@@ -117,7 +117,7 @@ async function login(email,password){
 }
 function clearFinancialUI(){
   for(const id of ["clientHistory","clientLoyaltySummary","clientList","clientDetails","upcomingReminders"])$(id).textContent="";
-  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary"])$(id).textContent="";
+  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory"])$(id).textContent="";
   for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
   $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
   $("purchaseCartridge").innerHTML='<option value="">Selecione</option>';
@@ -126,7 +126,7 @@ function clearFinancialUI(){
 }
 async function logout(){
   const token=state.session?.access_token;
-  Store.clear();state.role=null;state.profile=null;state.sales=[];state.cartridges=[];state.usages=[];state.purchases=[];state.stock=[];
+  Store.clear();state.role=null;state.profile=null;state.sales=[];state.cartridges=[];state.usages=[];state.purchases=[];state.stock=[];state.adjustments=[];
   document.querySelectorAll("dialog[open]").forEach(d=>d.close());document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   clearFinancialUI();clearTimeout(toast.timer);$("toast").textContent="";$("toast").className="toast";
   saveSession(null);state.user=null;$("appView").hidden=true;$("loginView").hidden=false;$("loginForm").reset();
@@ -206,11 +206,11 @@ async function loadData(showError=true){
     const d=Store.load();state.profile=Store.profile();state.role=state.profile.papel;applyRole();
     if(isAdmin()){
       state.cartridges=d.cartuchos;
-      Object.assign(state,{sales:d.vendas,cartridges:d.cartuchos,usages:d.venda_cartuchos,purchases:d.compras_cartuchos,stock:normalizeStock([],d.compras_cartuchos,d.venda_cartuchos)});
+      Object.assign(state,{sales:d.vendas,cartridges:d.cartuchos,usages:d.venda_cartuchos,purchases:d.compras_cartuchos,adjustments:d.ajustes_estoque,stock:normalizeStock([],d.compras_cartuchos,d.venda_cartuchos,d.ajustes_estoque)});
       renderAll();
       for(const [id,value] of Object.entries(selected))if(value&&[...$(id).options].some(o=>o.value===value))$(id).value=value;
       renderDashboard();
-    }else{state.sales=[];state.cartridges=[];state.usages=[];state.purchases=[];state.stock=[];clearFinancialUI();if(document.querySelector(".page.active.admin-only"))showPage("agenda")}
+    }else{state.sales=[];state.cartridges=[];state.usages=[];state.purchases=[];state.stock=[];state.adjustments=[];clearFinancialUI();if(document.querySelector(".page.active.admin-only"))showPage("agenda")}
     renderWorkspace();$("syncStatus").textContent="Atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
   }catch(e){if(e.code==="42501"){await logout()}$("syncStatus").textContent="Falha ao atualizar";if(showError)toast(e.message,"error");throw e}
 }
@@ -218,22 +218,11 @@ function safeNumber(value){
   const parsed=Number(value);
   return Number.isFinite(parsed)?parsed:0;
 }
-function normalizeStock(stockRows,purchases,usages){
-  const purchaseTotals=purchases.reduce((totals,item)=>{
-    totals[item.cartucho_id]=(totals[item.cartucho_id]||0)+safeNumber(item.quantidade);
-    return totals;
-  },{});
-  const usageTotals=usages.reduce((totals,item)=>{
-    totals[item.cartucho_id]=(totals[item.cartucho_id]||0)+safeNumber(item.quantidade);
-    return totals;
-  },{});
-  const stockByCartridge=Object.fromEntries(stockRows.map(item=>[item.cartucho_id||item.id,item]));
-  return state.cartridges.map(cartridge=>({
-    ...(stockByCartridge[cartridge.id]||{}),
-    ...cartridge,
-    quantidade_atual:Math.max(0,safeNumber(purchaseTotals[cartridge.id])-safeNumber(usageTotals[cartridge.id]))
-  }));
+function normalizeStock(stockRows,purchases,usages,adjustments=[]){
+  const total=(rows,id,key)=>rows.filter(x=>x.cartucho_id===id).reduce((sum,x)=>sum+safeNumber(x[key]),0);
+  return state.cartridges.map(c=>{const initial=safeNumber(c.estoque_inicial),entries=total(purchases,c.id,"quantidade"),used=total(usages,c.id,"quantidade"),adjusted=total(adjustments,c.id,"diferenca");return {...c,inicial:initial,entradas:entries,consumos:used,ajustes:adjusted,quantidade_atual:initial+entries-used+adjusted}});
 }
+
 async function startApp(){
   const token=await ensureToken();state.user=await authFetch("/user",{headers:{Authorization:`Bearer ${token}`}});
   await loadData();if(isAdmin())resetSaleForm();
@@ -318,28 +307,30 @@ function renderSales(){
   $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span>${s.forma_pagamento==="Misto"?`<small class="sale-payment-detail">${esc(salePaymentDescription(s))}</small>`:""}</div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><label class="art-ready-control compact invoice-control"><input type="checkbox" data-invoice="${esc(s.id)}" ${s.nf_emitida?"checked":""}><span>Nota fiscal emitida</span></label><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar">✎</button><button data-delete="${s.id}" class="delete" title="Excluir">×</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';
 }
 function renderStock(){
-  const low=state.stock.filter(s=>safeNumber(s.quantidade_atual)<10).length;
-  $("stockSummary").textContent=`${state.stock.length} tipos cadastrados · ${low?`${low} com estoque baixo`:"todos com bom estoque"}`;
+  const active=state.stock.filter(stockIsActive),low=active.filter(s=>safeNumber(s.quantidade_atual)<10).length;
+  $("stockSummary").textContent=`${active.length} tipos cadastrados · ${low?`${low} com estoque baixo`:"todos com bom estoque"}`;
   const groups={RL:[],RM:[],RS:[]};
-  [...state.stock].sort(sortCartridges).forEach(s=>{const family=String(s.nome).toUpperCase().match(/(RL|RM|RS)$/)?.[1];if(family)groups[family].push(s)});
+  [...active].sort(sortCartridges).forEach(s=>{const family=String(s.nome).toUpperCase().match(/(RL|RM|RS)$/)?.[1];if(family)groups[family].push(s)});
   const labels={RL:"Traço",RM:"Magnum",RS:"Round Shader"};
-  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":qty>0?"ending":"empty-stock";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO","empty-stock":"NÃO HÁ"}[level];return `<article class="stock-card ${level}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>unidades disponíveis</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span></article>`}).join("")}</div></section>`).join("");
+  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":qty>0?"ending":"empty-stock";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO","empty-stock":"NÃO HÁ"}[level];return `<article class="stock-card ${level}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>${qty<0?"saldo divergente":"unidades disponíveis"}</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span><div class="stock-card-actions"><button class="btn ghost small" data-stock-history="${esc(s.id)}">Movimentações</button><button class="btn primary small" data-stock-count="${esc(s.id)}">Corrigir saldo</button></div></article>`}).join("")}</div></section>`).join("");
+  renderStockAudit();
 }
 function renderPurchases(){
   const byId=Object.fromEntries(state.cartridges.map(c=>[c.id,c.nome]));
   $("purchaseList").innerHTML=state.purchases.slice(0,10).map(p=>`<div class="recent-item"><div><p>${esc(byId[p.cartucho_id]||"Cartucho")}: +${safeNumber(p.quantidade)}</p><small>${formatDate(p.data_compra)}</small></div><div class="purchase-actions"><button type="button" data-delete-purchase="${p.id}" class="icon-delete" title="Excluir entrada" aria-label="Excluir entrada de ${esc(byId[p.cartucho_id]||"cartucho")}">×</button></div></div>`).join("")||'<div class="empty">Nenhuma entrada registrada.</div>';
 }
 function renderSelects(){
-  const opts='<option value="">Selecione</option>'+[...state.cartridges].sort(sortCartridges).map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join("");
-  $("purchaseCartridge").innerHTML=opts;
-  document.querySelectorAll(".cartridge-select").forEach(el=>{const v=el.value;el.innerHTML=opts;el.value=v});
+  const options=(selected="")=>'<option value="">Selecione</option>'+[...state.cartridges].filter(c=>stockIsActive(c)||c.id===selected).sort(sortCartridges).map(c=>`<option value="${esc(c.id)}">${esc(c.nome)}${stockIsActive(c)?"":" (arquivado)"}</option>`).join("");
+  $("purchaseCartridge").innerHTML=options();
+  document.querySelectorAll(".cartridge-select").forEach(el=>{const v=el.value;el.innerHTML=options(v);el.value=v});
 }
+
 function renderAll(){renderSaleClients();setupFilters();renderSelects();renderDashboard();renderSales();renderStock();renderPurchases()}
 
 function addCartridgeRow(cartuchoId="",quantidade=1){
   const row=document.createElement("div");row.className="cartridge-row";
   row.innerHTML=`<select class="cartridge-select" aria-label="Cartucho" required></select><input class="cartridge-qty" type="number" min="1" value="${quantidade}" aria-label="Quantidade" required><button class="remove-row" type="button" aria-label="Remover">×</button>`;
-  $("cartridgeRows").appendChild(row);renderSelects();row.querySelector("select").value=cartuchoId;
+  $("cartridgeRows").appendChild(row);if(cartuchoId){const c=state.cartridges.find(c=>c.id===cartuchoId);if(c){const option=document.createElement("option");option.value=c.id;option.textContent=c.nome;row.querySelector("select").appendChild(option);row.querySelector("select").value=cartuchoId}}renderSelects();row.querySelector("select").value=cartuchoId;
   row.querySelector(".remove-row").onclick=()=>row.remove();
 }
 function resetSaleForm(){
@@ -411,6 +402,7 @@ function showPage(name){
 }
 
 function bindEvents(){
+  initStockTools();
   $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;setBusy(form,true);try{await login($("loginEmail").value.trim(),$("loginPassword").value)}catch(err){toast(err.message,"error")}finally{setBusy(form,false)}});
   $("forgotPasswordBtn").onclick=()=>{showAuthMode("request");$("recoveryEmail").value=$("loginEmail").value};
   $("backToLogin").onclick=()=>showAuthMode("login");

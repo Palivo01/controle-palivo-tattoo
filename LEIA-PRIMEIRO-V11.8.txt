@@ -1,0 +1,11 @@
+PALIVO CONTROLE V11.8
+
+1. No Supabase do CONTROLE, execute uma vez o arquivo ATUALIZAR-SUPABASE-V11.8.sql, que está na raiz deste ZIP. Não execute novamente as migrações anteriores da pasta supabase.
+2. Publique os arquivos deste pacote no repositório controle-palivo-tattoo, mantendo a pasta assets. Não use o repositório do site institucional.
+3. Em Estoque, abra Corrigir saldo no cartucho, informe a quantidade física e o motivo. O Controle calcula a diferença e guarda um registro com data, responsável, saldo anterior e contagem. Vendas, entradas e consumos antigos não são alterados.
+4. Para conferir o cálculo, abra Movimentações. O saldo considera estoque inicial + entradas - consumos + ajustes. O painel de conferência aponta saldos negativos, quantidades inválidas, registros semelhantes repetidos e vendas sem consumo informado. Esses avisos são indícios, não prova de erro nem conferência física automática.
+5. Novo tipo de cartucho permite cadastrar tipos como 9RS e 15RM sem novo SQL. O tipo começa zerado; registre a entrada das unidades depois.
+6. 7RS e 7RM não aparecem no estoque nem nas opções novas de entrada/venda. Registros antigos permanecem guardados. Ao editar uma venda antiga, seu cartucho original é preservado.
+
+Antes de aplicar o SQL, o restante do Controle continua funcionando. As novas correções e o cadastro de tipos dependem da atualização.
+Não publiquei esta versão e não alterei seu banco de produção. Testes feitos com dados fictícios.
