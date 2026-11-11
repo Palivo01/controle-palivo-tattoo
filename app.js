@@ -117,7 +117,7 @@ async function login(email,password){
 }
 function clearFinancialUI(){
   for(const id of ["clientHistory","clientLoyaltySummary","clientList","clientDetails","upcomingReminders"])$(id).textContent="";
-  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory"])$(id).textContent="";
+  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory","stockOptionsTitle","stockOptionsBalance","stockOptionsActions"])$(id).textContent="";
   for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
   $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
   $("purchaseCartridge").innerHTML='<option value="">Selecione</option>';
@@ -312,7 +312,7 @@ function renderStock(){
   const groups={RL:[],RM:[],RS:[]};
   [...active].sort(sortCartridges).forEach(s=>{const family=String(s.nome).toUpperCase().match(/(RL|RM|RS)$/)?.[1];if(family)groups[family].push(s)});
   const labels={RL:"Traço",RM:"Magnum",RS:"Round Shader"};
-  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":qty>0?"ending":"empty-stock";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO","empty-stock":"NÃO HÁ"}[level];return `<article class="stock-card ${level}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>${qty<0?"saldo divergente":"unidades disponíveis"}</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span><div class="stock-card-actions"><button class="btn ghost small" data-stock-history="${esc(s.id)}">Movimentações</button><button class="btn primary small" data-stock-count="${esc(s.id)}">Corrigir saldo</button><button class="btn danger small" data-stock-delete="${esc(s.id)}">Excluir tipo</button></div></article>`}).join("")}</div></section>`).join("");
+  $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":qty>0?"ending":"empty-stock";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO","empty-stock":"NÃO HÁ"}[level];return `<article class="stock-card stock-card-interactive ${level}" role="button" tabindex="0" data-stock-options="${esc(s.id)}" aria-haspopup="dialog" aria-label="Abrir opções de ${esc(s.nome)}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>${qty<0?"saldo divergente":"unidades disponíveis"}</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span></article>`}).join("")}</div></section>`).join("");
   renderStockAudit();
 }
 function renderPurchases(){

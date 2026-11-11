@@ -10,13 +10,13 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm1181">
-  <script defer src="store.js?v=crm1181"></script>
-  <script defer src="app.js?v=crm1181"></script>
-  <script defer src="icons.js?v=crm1181"></script>
-  <script defer src="agenda.js?v=crm1181"></script>
-  <script defer src="clientes.js?v=crm1181"></script>
-  <script defer src="estoque.js?v=crm1181"></script>
+  <link rel="stylesheet" href="style.css?v=crm1182">
+  <script defer src="store.js?v=crm1182"></script>
+  <script defer src="app.js?v=crm1182"></script>
+  <script defer src="icons.js?v=crm1182"></script>
+  <script defer src="agenda.js?v=crm1182"></script>
+  <script defer src="clientes.js?v=crm1182"></script>
+  <script defer src="estoque.js?v=crm1182"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -221,5 +221,6 @@
 <dialog id="stockHistoryDialog" class="wide-dialog"><div class="dialog-content"><div class="panel-head"><h3 id="stockHistoryTitle">Movimentações</h3><button class="icon-btn" data-close="stockHistoryDialog" aria-label="Fechar">×</button></div><div id="stockHistory"></div></div></dialog>
 <dialog id="stockTypeDialog" class="wide-dialog"><form id="stockTypeForm" class="dialog-content form-stack"><div class="panel-head"><h3>Novo tipo de cartucho</h3><button type="button" class="icon-btn" data-close="stockTypeDialog" aria-label="Fechar">×</button></div><label>Tipo<input id="stockTypeName" maxlength="8" placeholder="Ex.: 9RS" required autocapitalize="characters"></label><p class="muted">O saldo começa em zero. Depois, registre a entrada das unidades.</p><p id="stockTypeError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="stockTypeDialog">Voltar</button><button type="submit" class="btn primary">Cadastrar tipo</button></div></form></dialog>
 <dialog id="stockTypeDeleteDialog" class="wide-dialog"><div class="dialog-content"><p class="eyebrow">CONFIRMAÇÃO</p><h3 id="stockTypeDeleteName">Excluir tipo de cartucho?</h3><p class="muted">O tipo sairá do estoque e das novas opções de entrada e venda. Se houver saldo inicial ou movimentações, os registros serão preservados no histórico. Sem saldo inicial nem movimentações, o cadastro será removido.</p><p id="stockTypeDeleteError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="stockTypeDeleteDialog">Voltar</button><button id="confirmStockTypeDelete" type="button" class="btn danger">Excluir tipo</button></div></div></dialog>
+<dialog id="stockOptionsDialog" class="stock-options-dialog" aria-labelledby="stockOptionsTitle"><div class="dialog-content"><div class="panel-head"><div><p class="eyebrow">CARTUCHO</p><h3 id="stockOptionsTitle"></h3></div><button type="button" class="icon-btn" data-close="stockOptionsDialog" aria-label="Fechar opções do cartucho">×</button></div><p id="stockOptionsBalance" class="stock-options-balance"></p><div id="stockOptionsActions" class="stock-options-actions"></div></div></dialog>
 </body>
 </html>

@@ -1,0 +1,13 @@
+PALIVO CONTROLE V11.8.2
+
+Tela de estoque: cards mostram somente família, tipo, saldo e status.
+Clique ou toque em qualquer parte do card para abrir as opções Movimentações, Corrigir saldo e Excluir tipo.
+A exclusão mantém a confirmação e as mesmas proteções da V11.8.1.
+
+Esta atualização não precisa de novo SQL se você já executou os SQLs da V11.8 e V11.8.1.
+Publique este pacote no repositório controle-palivo-tattoo, mantendo assets.
+Não use o repositório do site institucional.
+
+Se ainda não executou os SQLs anteriores, os arquivos V11.8 e V11.8.1 estão na raiz. Execute nessa ordem, somente se ainda faltarem. Não rode todas as migrações antigas da pasta supabase.
+
+Não publiquei esta atualização nem alterei o banco de produção.

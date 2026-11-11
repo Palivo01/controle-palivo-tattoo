@@ -3,7 +3,9 @@ const RETIRED_CARTRIDGES=new Set(["7RS","7RM"]);
 const stockIsActive=c=>c.ativo!==false&&!RETIRED_CARTRIDGES.has(String(c.nome).replace(/\s+/g,"").toUpperCase());
 let stockCountDraft=null,stockTypeId="",stockDeleteId="";
 function initStockTools(){
- $("stockGrid").onclick=e=>{const history=e.target.closest("[data-stock-history]"),count=e.target.closest("[data-stock-count]");const del=e.target.closest("[data-stock-delete]");if(del)openStockTypeDelete(del.dataset.stockDelete);if(history)openStockHistory(history.dataset.stockHistory);if(count)openStockCount(count.dataset.stockCount)};
+ $("stockGrid").onclick=e=>{const card=e.target.closest("[data-stock-options]");if(card)openStockOptions(card.dataset.stockOptions)};
+ $("stockGrid").onkeydown=e=>{const card=e.target.closest("[data-stock-options]");if(card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openStockOptions(card.dataset.stockOptions)}};
+ $("stockOptionsActions").onclick=e=>{const history=e.target.closest("[data-stock-history]"),count=e.target.closest("[data-stock-count]"),del=e.target.closest("[data-stock-delete]");if(!history&&!count&&!del)return;$("stockOptionsDialog").close();if(history)openStockHistory(history.dataset.stockHistory);if(count)openStockCount(count.dataset.stockCount);if(del)openStockTypeDelete(del.dataset.stockDelete)};
  $("stockPhysicalCount").oninput=stockCountPreview;$("stockCountForm").onsubmit=saveStockCount;
  $("newStockType").onclick=()=>{if(!isAdmin())return;if(!Store.load().estoque_ajuste_disponivel){toast("Aplique o SQL V11.8 no Supabase para habilitar o cadastro.","error");return}$("stockTypeForm").reset();$("stockTypeError").hidden=true;stockTypeId=Store.uid();$("stockTypeDialog").showModal()};
  $("stockTypeForm").onsubmit=saveStockType;$("confirmStockTypeDelete").onclick=deleteStockType;$("stockTypeDeleteDialog").addEventListener("close",()=>{stockDeleteId=""});
@@ -61,4 +63,11 @@ async function deleteStockType(){
  if(!isAdmin()||!stockDeleteId)return;const button=$("confirmStockTypeDelete"),id=stockDeleteId;button.disabled=true;$("stockTypeDeleteError").hidden=true;
  try{await Store.deleteStockType(id);$("stockTypeDeleteDialog").close();try{await loadData(false);toast("Tipo retirado do estoque e das opções de uso.")}catch{toast("Tipo excluído. Use Atualizar dados para conferir.","error")}}
  catch(err){$("stockTypeDeleteError").textContent=["PGRST202","42703"].includes(err.code)?"Aplique o SQL V11.8.1 no Supabase para habilitar a exclusão.":err.message;$("stockTypeDeleteError").hidden=false}finally{button.disabled=false}
+}
+
+function openStockOptions(id){
+ if(!isAdmin())return;const c=state.stock.find(c=>c.id===id);if(!c||!stockIsActive(c))return;
+ $("stockOptionsTitle").textContent=c.nome;$("stockOptionsBalance").textContent=c.quantidade_atual<0?`Saldo divergente: ${c.quantidade_atual}`:`${c.quantidade_atual} ${c.quantidade_atual===1?"unidade disponível":"unidades disponíveis"}`;
+ $("stockOptionsActions").innerHTML=`<button type="button" class="btn ghost" data-stock-history="${esc(c.id)}">Movimentações</button><button type="button" class="btn primary" data-stock-count="${esc(c.id)}">Corrigir saldo</button><button type="button" class="btn danger" data-stock-delete="${esc(c.id)}">Excluir tipo</button>`;
+ $("stockOptionsDialog").showModal();
 }
