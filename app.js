@@ -117,7 +117,7 @@ async function login(email,password){
 }
 function clearFinancialUI(){
   for(const id of ["clientHistory","clientLoyaltySummary","clientList","clientDetails","upcomingReminders"])$(id).textContent="";
-  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory","stockOptionsTitle","stockOptionsBalance","stockOptionsActions"])$(id).textContent="";
+  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory","stockOptionsTitle","stockOptionsBalance","stockOptionsActions","followupPending","followupHistory","followupAvailability"])$(id).textContent="";
   for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
   $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
   $("purchaseCartridge").innerHTML='<option value="">Selecione</option>';
@@ -394,15 +394,17 @@ async function deletePurchase(){
   finally{button.disabled=false;button.textContent="Excluir entrada"}
 }
 function showPage(name){
-  if(!isAdmin()&&!["agenda","clientes"].includes(name))name="agenda";
+  if(!isAdmin()&&!["agenda","clientes","pos-venda"].includes(name))name="agenda";
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===`page-${name}`));
   document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===name));
+  renderUpcomingReminders();
+  if(name==="pos-venda")renderFollowups();
   if(name==="nova-venda"&&!$("saleId").value&&document.activeElement?.classList.contains("jump-sale"))resetSaleForm();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function bindEvents(){
-  initStockTools();
+  initStockTools();initFollowups();
   $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;setBusy(form,true);try{await login($("loginEmail").value.trim(),$("loginPassword").value)}catch(err){toast(err.message,"error")}finally{setBusy(form,false)}});
   $("forgotPasswordBtn").onclick=()=>{showAuthMode("request");$("recoveryEmail").value=$("loginEmail").value};
   $("backToLogin").onclick=()=>showAuthMode("login");

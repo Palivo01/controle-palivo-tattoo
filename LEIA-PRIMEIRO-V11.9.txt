@@ -1,0 +1,20 @@
+PALIVO CONTROLE V11.9 - PÓS-VENDA
+
+Aba Pós-venda com indicador de pendências no menu. Sem lista extra de pós-venda na tela inicial.
+Primeiro contato: a partir de 5 dias da tattoo.
+Segundo contato: a partir de 15 dias da tattoo.
+A data vem de data_atendimento das vendas, não da criação da venda nem do agendamento.
+Cada cliente e dia de atendimento formam uma sessão. Vendas repetidas no mesmo dia não geram mensagens duplicadas.
+Se as duas etapas venceram, aparece um único acompanhamento atualizado de 15 dias.
+
+Clique no atendimento para abrir a mensagem com nome e data. Abra o WhatsApp, converse com o cliente e depois marque Contato realizado e salve. A abertura do WhatsApp não confirma o envio.
+Histórico fica recolhido. Abra um contato realizado e desmarque a caixa para reabrir.
+Paulo e Iuri podem acompanhar os contatos. Nenhum valor de venda ou informação financeira é liberado para o colaborador.
+
+ATIVAÇÃO: execute uma vez ATUALIZAR-SUPABASE-V11.9.sql no projeto Supabase do Controle. A migração cria apenas a configuração e os registros de acompanhamento; não modifica vendas, valores ou estoque.
+O início do fluxo é fixado nos 30 dias anteriores à primeira ativação. Pendências posteriores não expiram. O início não avança ao reaplicar o SQL.
+Sem essa ativação, o Controle continua funcionando e a aba informa que aguarda a atualização.
+
+Validação feita em banco isolado e com clientes fictícios. Não foram enviados WhatsApps durante os testes.
+
+O botão dos agendamentos concluídos também leva à aba Pós-venda, filtrando o cliente.

@@ -3,7 +3,7 @@
 const Store=(()=>{
   const styles=["Realismo","Fineline","Cristã","Fineart","Colorido","Tradicional","Escrita","Homenagem","Cobertura","Geométrico","Comercial"];
   const statuses=["Agendado","Confirmado","Concluído","Cancelado","Não compareceu"],cities=["Jacobina","Umburanas","Ourolândia"],genders=["Homem","Mulher","Não informado"];
-  const empty=()=>({clientes:[],agendamentos:[],vendas:[],cartuchos:[],compras_cartuchos:[],venda_cartuchos:[],ajustes_estoque:[],estoque_ajuste_disponivel:false});
+  const empty=()=>({clientes:[],agendamentos:[],vendas:[],cartuchos:[],compras_cartuchos:[],venda_cartuchos:[],ajustes_estoque:[],estoque_ajuste_disponivel:false,pos_venda:[],pos_venda_disponivel:false,pos_venda_inicio:null});
   let data=empty(),profile=null,epoch=0;
   const uid=()=>{
     if(crypto.randomUUID)return crypto.randomUUID();
@@ -31,16 +31,20 @@ const Store=(()=>{
     try{return {rows:await all("controle_ajustes_estoque?select=*&order=criado_em.asc,id.asc"),enabled:true}}
     catch(e){if(e.status===404||["42P01","PGRST205"].includes(e.code))return {rows:[],enabled:false};throw e}
   }
+  async function aftercare(){
+    try{const result=await rpc("controle_listar_pos_venda");if(!result||!Array.isArray(result.atendimentos))throw new Error("Resposta inválida do pós-venda.");return {...result,enabled:true}}
+    catch(e){if(e.status===404||["42883","PGRST202"].includes(e.code))return {atendimentos:[],enabled:false,inicio:null};throw e}
+  }
   async function refresh(){
     const started=epoch;
     const ctx=await rpc("controle_contexto");
     if(!ctx||!["admin","colaborador"].includes(ctx.papel))throw new Error("Perfil sem acesso ao Controle.");
-    const tasks=[workspace()];
+    const tasks=[workspace(),aftercare()];
     if(ctx.papel==="admin")tasks.push(Promise.all([
       all("vendas?select=*&order=data_atendimento.desc,criado_em.desc,id.asc"),all("cartuchos?select=*&order=nome.asc,id.asc"),
       all("venda_cartuchos?select=*&order=criado_em.desc,id.asc"),all("compras_cartuchos?select=*&order=data_compra.desc,criado_em.desc,id.asc"),stockAdjustments()
     ]));
-    const [w,finance]=await Promise.all(tasks);const fresh={...empty(),...w};
+    const [w,posts,finance]=await Promise.all(tasks);const fresh={...empty(),...w,pos_venda:posts.atendimentos,pos_venda_disponivel:posts.enabled,pos_venda_inicio:posts.inicio};
     if(finance){[fresh.vendas,fresh.cartuchos,fresh.venda_cartuchos,fresh.compras_cartuchos]=finance;fresh.ajustes_estoque=finance[4].rows;fresh.estoque_ajuste_disponivel=finance[4].enabled}
     // Substitui o cache somente após todas as leituras necessárias concluírem.
     if(started!==epoch)throw new Error("Sessão encerrada.");
@@ -71,6 +75,7 @@ const Store=(()=>{
     saveBirthday:async(id,year,details)=>{await rpc("controle_salvar_aniversario",{p_cliente:id,p_ano:year,p_dados:details});const c=data.clientes.find(c=>c.id===id);if(c)c.aniversario_registros={...c.aniversario_registros,[year]:{...c.aniversario_registros?.[year],...details}};await reloadWorkspace()},
     saveSale:(id,payload,materials)=>rpc("controle_salvar_venda",{p_id:id,p_dados:payload,p_materiais:materials}),
     deleteClient:async id=>{await rpc("controle_excluir_cliente",{p_id:id});data.clientes=data.clientes.filter(c=>c.id!==id);await reloadWorkspace()},
+    saveFollowup:(client,date,stage,done)=>rpc("controle_registrar_pos_venda",{p_cliente:client,p_data:date,p_etapa:stage,p_realizado:done}),
     deleteStockType:id=>rpc("controle_excluir_cartucho",{p_id:id}),
     saveStockType:(id,name)=>rpc("controle_criar_cartucho",{p_id:id,p_nome:name}),
     saveStockCount:(id,cart,count,expected,reason)=>rpc("controle_ajustar_estoque",{p_id:id,p_cartucho:cart,p_contagem:count,p_saldo_esperado:expected,p_motivo:reason}),

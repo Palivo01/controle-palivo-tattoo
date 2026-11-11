@@ -110,6 +110,7 @@ function depositReminderMessage(a,c,value=a.sinal_valor){
 }
 function openAppointmentMessage(id,kind="appointment"){
   const d=Store.load(),a=d.agendamentos.find(a=>a.id===id),c=d.clientes.find(c=>c.id===a?.cliente_id);if(!a||!c)return;
+  if(kind!=="deposit"&&a.status==="Concluído"){$("followupSearch").value=c.nome;showPage("pos-venda");return}
   const deposit=kind==="deposit";if(deposit&&(a.sinal_pago||!["Agendado","Confirmado"].includes(a.status)))return;
   depositMessageAppointmentId=deposit?id:"";$("depositReminderField").hidden=!deposit;
   $("depositReminderValue").value=deposit&&Number(a.sinal_valor)>0?a.sinal_valor:"";
@@ -160,7 +161,7 @@ function reminderAppointments(data,base=new Date()){
 }
 function renderUpcomingReminders(){
  const data=Store.load(),rows=reminderAppointments(data),panel=$("upcomingReminders"),today=isoToday();
- panel.hidden=!rows.length;
+ panel.hidden=!rows.length||!$("page-agenda").classList.contains("active");
  panel.innerHTML=rows.length?`<div class="reminder-heading"><span class="eyebrow">LEMBRETES</span><h3>Seus próximos atendimentos</h3></div>${[today,tomorrowDate()].map(day=>{
  const group=rows.filter(a=>a.data===day);if(!group.length)return "";
  return `<section class="reminder-group"><h4>${day===today?"Hoje":"Amanhã"} <small>${formatDate(day)}</small></h4><div class="reminder-list">${group.map(a=>{const c=data.clientes.find(c=>c.id===a.cliente_id);return `<div class="reminder-row"><div><strong>${esc(c?.nome||"Cliente")}</strong><span>${formatTime(a.hora)} · ${esc(a.cidade)}</span></div><button type="button" class="btn whatsapp-btn" data-client-message="${esc(a.id)}">${whatsappIcon()} Lembrar horário</button></div>`}).join("")}</div></section>`;

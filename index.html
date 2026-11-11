@@ -10,13 +10,14 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm1182">
-  <script defer src="store.js?v=crm1182"></script>
-  <script defer src="app.js?v=crm1182"></script>
-  <script defer src="icons.js?v=crm1182"></script>
-  <script defer src="agenda.js?v=crm1182"></script>
-  <script defer src="clientes.js?v=crm1182"></script>
-  <script defer src="estoque.js?v=crm1182"></script>
+  <link rel="stylesheet" href="style.css?v=crm119">
+  <script defer src="store.js?v=crm119"></script>
+  <script defer src="app.js?v=crm119"></script>
+  <script defer src="icons.js?v=crm119"></script>
+  <script defer src="agenda.js?v=crm119"></script>
+  <script defer src="clientes.js?v=crm119"></script>
+  <script defer src="estoque.js?v=crm119"></script>
+  <script defer src="pos-venda.js?v=crm119"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -62,6 +63,7 @@
       <nav class="nav" aria-label="Menu principal">
         <button data-page="agenda" class="nav-item"><span>▣</span>Agenda</button>
         <button data-page="clientes" class="nav-item"><span>◎</span>Clientes</button>
+        <button data-page="pos-venda" class="nav-item"><span></span>Pós-venda<b class="followup-count" data-followup-count hidden></b></button>
         <button data-page="dashboard" class="admin-only nav-item active"><span>◫</span>Visão geral</button>
         <button data-page="nova-venda" class="admin-only nav-item"><span>＋</span>Nova venda</button>
         <button data-page="vendas" class="admin-only nav-item"><span>◇</span>Vendas</button>
@@ -174,6 +176,12 @@
         </div>
         <p id="agendaPeriod" class="muted"></p><div id="agendaList" class="agenda-list"></div>
       </section>
+      <section id="page-pos-venda" class="page">
+        <div class="page-head"><div><p class="eyebrow">CUIDADO QUE CONTINUA</p><h2>Pós-venda</h2><p class="muted">Acompanhamento a partir de 5 e 15 dias da tattoo.</p></div></div>
+        <div class="followup-toolbar"><label>Buscar cliente<input id="followupSearch" type="search" placeholder="Nome do cliente" autocomplete="off"></label><span id="followupTotal" class="muted" aria-live="polite"></span></div>
+        <div id="followupAvailability" class="panel" hidden></div><div id="followupPending"></div>
+        <details class="panel followup-history"><summary id="followupHistorySummary">Contatos realizados</summary><div id="followupHistory"></div></details>
+      </section>
       <section id="page-clientes" class="page">
         <div class="page-head"><div><p class="eyebrow">RELACIONAMENTO</p><h2>Clientes</h2><p class="muted">Contato, cidade e histórico de agendamentos.</p></div><button id="newClient" class="btn primary">＋ Novo cliente</button></div>
         <div class="search-box">⌕ <input id="clientSearch" type="search" placeholder="Buscar nome, WhatsApp ou cidade"></div><div class="client-filters"><label>Cidade do cadastro<select id="clientCityFilter"><option value="all">Todas as cidades</option></select></label><label>Aniversariantes<select id="clientBirthdayFilter"><option value="all">Todos os clientes</option><option value="current">Aniversariantes deste mês</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></label><label>Gênero<select id="clientGenderFilter"><option value="all">Todos</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label><span id="clientResultCount" class="muted" aria-live="polite"></span></div><div id="clientList" class="client-grid"></div>
@@ -184,6 +192,7 @@
     <nav class="bottom-nav" aria-label="Menu móvel">
       <button data-page="agenda"><span>▣</span>Agenda</button>
       <button data-page="clientes"><span>◎</span>Clientes</button>
+      <button data-page="pos-venda"><span></span>Pós-venda<b class="followup-count" data-followup-count hidden></b></button>
       <button data-page="dashboard" class="admin-only"><span>◫</span>Painel</button>
       <button data-page="vendas" class="admin-only"><span>◇</span>Vendas</button>
       <button data-page="estoque" class="admin-only"><span></span>Estoque</button>
@@ -222,5 +231,6 @@
 <dialog id="stockTypeDialog" class="wide-dialog"><form id="stockTypeForm" class="dialog-content form-stack"><div class="panel-head"><h3>Novo tipo de cartucho</h3><button type="button" class="icon-btn" data-close="stockTypeDialog" aria-label="Fechar">×</button></div><label>Tipo<input id="stockTypeName" maxlength="8" placeholder="Ex.: 9RS" required autocapitalize="characters"></label><p class="muted">O saldo começa em zero. Depois, registre a entrada das unidades.</p><p id="stockTypeError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="stockTypeDialog">Voltar</button><button type="submit" class="btn primary">Cadastrar tipo</button></div></form></dialog>
 <dialog id="stockTypeDeleteDialog" class="wide-dialog"><div class="dialog-content"><p class="eyebrow">CONFIRMAÇÃO</p><h3 id="stockTypeDeleteName">Excluir tipo de cartucho?</h3><p class="muted">O tipo sairá do estoque e das novas opções de entrada e venda. Se houver saldo inicial ou movimentações, os registros serão preservados no histórico. Sem saldo inicial nem movimentações, o cadastro será removido.</p><p id="stockTypeDeleteError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="stockTypeDeleteDialog">Voltar</button><button id="confirmStockTypeDelete" type="button" class="btn danger">Excluir tipo</button></div></div></dialog>
 <dialog id="stockOptionsDialog" class="stock-options-dialog" aria-labelledby="stockOptionsTitle"><div class="dialog-content"><div class="panel-head"><div><p class="eyebrow">CARTUCHO</p><h3 id="stockOptionsTitle"></h3></div><button type="button" class="icon-btn" data-close="stockOptionsDialog" aria-label="Fechar opções do cartucho">×</button></div><p id="stockOptionsBalance" class="stock-options-balance"></p><div id="stockOptionsActions" class="stock-options-actions"></div></div></dialog>
+<dialog id="followupDialog" class="wide-dialog" aria-labelledby="followupTitle"><form id="followupForm" class="dialog-content form-stack"><div class="panel-head"><div><p id="followupStage" class="eyebrow"></p><h3 id="followupTitle"></h3></div><button type="button" class="icon-btn" data-close="followupDialog" aria-label="Fechar acompanhamento">×</button></div><p id="followupDate" class="muted"></p><p id="followupMerged" class="muted" hidden>Este acompanhamento reúne os dois contatos que ficaram pendentes. Envie apenas uma mensagem.</p><label>Mensagem<textarea id="followupMessage" rows="8" maxlength="4000" required></textarea></label><button id="followupWhatsapp" type="button" class="btn whatsapp-btn">Abrir WhatsApp</button><label class="art-ready-control"><input id="followupDone" type="checkbox"><span>Contato realizado</span></label><small class="muted">Marque depois de enviar a mensagem ou conversar com o cliente.</small><p id="followupError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="followupDialog">Voltar</button><button type="submit" class="btn primary">Salvar acompanhamento</button></div></form></dialog>
 </body>
 </html>
