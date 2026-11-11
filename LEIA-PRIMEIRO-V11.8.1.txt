@@ -1,0 +1,15 @@
+PALIVO CONTROLE V11.8.1
+
+NOVO: botão Excluir tipo nos cards de estoque.
+Sem saldo inicial nem movimentações: remove o cadastro criado por engano, permitindo cadastrar esse mesmo nome depois.
+Com saldo inicial ou movimentações: retira o tipo do estoque e das novas opções, preservando todo o histórico. Vendas e consumos antigos continuam disponíveis.
+
+Como você já aplicou a V11.8, execute SOMENTE ATUALIZAR-SUPABASE-V11.8.1.sql, que está na raiz do pacote.
+Depois publique os arquivos no repositório controle-palivo-tattoo, mantendo assets.
+Não use o repositório do site institucional.
+Entre no Controle, use Atualizar dados e vá a Estoque > Excluir tipo.
+
+Se ainda não aplicou o SQL V11.8, aplique-o antes do complemento V11.8.1.
+Não execute em conjunto todas as migrações antigas da pasta supabase.
+
+Esta versão foi testada com dados fictícios. Não publiquei nem alterei seu banco de produção.

@@ -71,6 +71,7 @@ const Store=(()=>{
     saveBirthday:async(id,year,details)=>{await rpc("controle_salvar_aniversario",{p_cliente:id,p_ano:year,p_dados:details});const c=data.clientes.find(c=>c.id===id);if(c)c.aniversario_registros={...c.aniversario_registros,[year]:{...c.aniversario_registros?.[year],...details}};await reloadWorkspace()},
     saveSale:(id,payload,materials)=>rpc("controle_salvar_venda",{p_id:id,p_dados:payload,p_materiais:materials}),
     deleteClient:async id=>{await rpc("controle_excluir_cliente",{p_id:id});data.clientes=data.clientes.filter(c=>c.id!==id);await reloadWorkspace()},
+    deleteStockType:id=>rpc("controle_excluir_cartucho",{p_id:id}),
     saveStockType:(id,name)=>rpc("controle_criar_cartucho",{p_id:id,p_nome:name}),
     saveStockCount:(id,cart,count,expected,reason)=>rpc("controle_ajustar_estoque",{p_id:id,p_cartucho:cart,p_contagem:count,p_saldo_esperado:expected,p_motivo:reason}),
     deleteSale:id=>rpc("controle_excluir_venda",{p_id:id}),clear:()=>{epoch++;data=empty();profile=null}};

@@ -1,12 +1,12 @@
 "use strict";
 const RETIRED_CARTRIDGES=new Set(["7RS","7RM"]);
-const stockIsActive=c=>!RETIRED_CARTRIDGES.has(String(c.nome).replace(/\s+/g,"").toUpperCase());
-let stockCountDraft=null,stockTypeId="";
+const stockIsActive=c=>c.ativo!==false&&!RETIRED_CARTRIDGES.has(String(c.nome).replace(/\s+/g,"").toUpperCase());
+let stockCountDraft=null,stockTypeId="",stockDeleteId="";
 function initStockTools(){
- $("stockGrid").onclick=e=>{const history=e.target.closest("[data-stock-history]"),count=e.target.closest("[data-stock-count]");if(history)openStockHistory(history.dataset.stockHistory);if(count)openStockCount(count.dataset.stockCount)};
+ $("stockGrid").onclick=e=>{const history=e.target.closest("[data-stock-history]"),count=e.target.closest("[data-stock-count]");const del=e.target.closest("[data-stock-delete]");if(del)openStockTypeDelete(del.dataset.stockDelete);if(history)openStockHistory(history.dataset.stockHistory);if(count)openStockCount(count.dataset.stockCount)};
  $("stockPhysicalCount").oninput=stockCountPreview;$("stockCountForm").onsubmit=saveStockCount;
  $("newStockType").onclick=()=>{if(!isAdmin())return;if(!Store.load().estoque_ajuste_disponivel){toast("Aplique o SQL V11.8 no Supabase para habilitar o cadastro.","error");return}$("stockTypeForm").reset();$("stockTypeError").hidden=true;stockTypeId=Store.uid();$("stockTypeDialog").showModal()};
- $("stockTypeForm").onsubmit=saveStockType;
+ $("stockTypeForm").onsubmit=saveStockType;$("confirmStockTypeDelete").onclick=deleteStockType;$("stockTypeDeleteDialog").addEventListener("close",()=>{stockDeleteId=""});
 }
 function stockIssues(d){
  const issues=[],active=new Set(d.cartuchos.filter(stockIsActive).map(c=>c.id)),sales=new Set(d.vendas.map(s=>s.id));
@@ -51,4 +51,14 @@ function openStockHistory(id){
 async function saveStockType(e){
  e.preventDefault();if(!isAdmin())return;const form=e.currentTarget,name=$("stockTypeName").value.replace(/\s+/g,"").toUpperCase();$("stockTypeError").hidden=true;
  try{if(!/^[1-9]\d{0,2}(RL|RM|RS)$/.test(name))throw new Error("Use um tipo como 3RL, 9RS ou 15RM.");if(RETIRED_CARTRIDGES.has(name))throw new Error("Este tipo foi retirado das opções de uso.");setBusy(form,true);await Store.saveStockType(stockTypeId,name);$("stockTypeDialog").close();try{await loadData(false);toast("Tipo cadastrado. Registre a entrada das unidades.")}catch{toast("Tipo salvo. Use Atualizar dados para conferir.","error")}}catch(err){$("stockTypeError").textContent=err.message;$("stockTypeError").hidden=false}finally{setBusy(form,false)}
+}
+
+function openStockTypeDelete(id){
+ if(!isAdmin())return;const c=state.cartridges.find(c=>c.id===id);if(!c)return;
+ stockDeleteId=id;$("stockTypeDeleteName").textContent=`Excluir ${c.nome}?`;$("stockTypeDeleteError").hidden=true;$("stockTypeDeleteDialog").showModal();
+}
+async function deleteStockType(){
+ if(!isAdmin()||!stockDeleteId)return;const button=$("confirmStockTypeDelete"),id=stockDeleteId;button.disabled=true;$("stockTypeDeleteError").hidden=true;
+ try{await Store.deleteStockType(id);$("stockTypeDeleteDialog").close();try{await loadData(false);toast("Tipo retirado do estoque e das opções de uso.")}catch{toast("Tipo excluído. Use Atualizar dados para conferir.","error")}}
+ catch(err){$("stockTypeDeleteError").textContent=["PGRST202","42703"].includes(err.code)?"Aplique o SQL V11.8.1 no Supabase para habilitar a exclusão.":err.message;$("stockTypeDeleteError").hidden=false}finally{button.disabled=false}
 }
