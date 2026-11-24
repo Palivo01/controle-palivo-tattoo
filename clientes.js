@@ -21,20 +21,20 @@ function refreshClientCityFilter(){
 }
 function refreshPickerCities(prefix){
   const el=$(prefix+"ClientCity"),value=el.value;
-  el.innerHTML='<option value="">Selecione a cidade do cadastro</option>'+cityOptions()+'<option value="__all">Todas as cidades</option>';
-  el.value=[...el.options].some(o=>o.value===value)?value:"";
+  el.innerHTML='<option value="__all">Todas as cidades</option>'+cityOptions();
+  el.value=[...el.options].some(o=>o.value===value)?value:"__all";
 }
 function updateClientPicker(prefix,selected=""){
   refreshPickerCities(prefix);
   const city=$(prefix+"ClientCity").value,q=normalizeClientText($(prefix+"ClientSearch").value),select=$(prefix+"Client");
-  const rows=Store.load().clientes.filter(c=>(city==="__all"||clientCityKey(c)===city)&&normalizeClientText(c.nome).includes(q)).sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
-  select.innerHTML=`<option value="">${!city?"Escolha a cidade do cadastro":rows.length?"Selecione o cliente":"Nenhum cliente encontrado"}</option>`+(city?rows.map(c=>`<option value="${esc(c.id)}">${esc(c.nome)}${city==="__all"?` · ${esc(c.cidade||"Cidade não informada")}`:""}</option>`).join(""):"");
-  select.disabled=!city;select.value=rows.some(c=>c.id===selected)?selected:"";
+  const rows=Store.load().clientes.filter(c=>(!city||city==="__all"||clientCityKey(c)===city)&&normalizeClientText(c.nome).includes(q)).sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+  select.innerHTML=`<option value="">${rows.length?"Selecione o cliente":"Nenhum cliente encontrado"}</option>`+rows.map(c=>`<option value="${esc(c.id)}">${esc(c.nome)}${(!city||city==="__all")?` · ${esc(c.cidade||"Cidade não informada")}`:""}</option>`).join("");
+  select.disabled=false;select.value=rows.some(c=>c.id===selected)?selected:"";
 }
 function resetClientPicker(prefix,selected=""){
   const c=Store.load().clientes.find(c=>c.id===selected);
   $(prefix+"ClientMode").value="existing";$(prefix+"ClientSearch").value="";
-  refreshPickerCities(prefix);$(prefix+"ClientCity").value=c?clientCityKey(c):"";
+  refreshPickerCities(prefix);$(prefix+"ClientCity").value=c?clientCityKey(c):"__all";
   updateClientPicker(prefix,selected);
 }
 function clientFinancialSummary(d,id){
@@ -61,7 +61,7 @@ function initClientTools(){
   $("clientBirthdayFilter").onchange=renderClients;$("clientCityFilter").onchange=renderClients;
   $("clientMessageForm").onsubmit=e=>{
     e.preventDefault();$("clientMessageError").hidden=true;
-    try{launchClientWhatsapp(messageClientId,$("clientMessageText").value)}catch(err){$("clientMessageError").textContent=err.message;$("clientMessageError").hidden=false}
+    try{if(depositMessageAppointmentId&&Store.load().agendamentos.find(a=>a.id===depositMessageAppointmentId)?.sinal_pago)throw new Error("O sinal já está pago. Atualize este agendamento.");launchClientWhatsapp(messageClientId,$("clientMessageText").value)}catch(err){$("clientMessageError").textContent=err.message;$("clientMessageError").hidden=false}
   };
   $("birthdayBenefit").oninput=()=>{const c=Store.load().clientes.find(c=>c.id===birthdayClientId);if(c)$("birthdayMessage").value=makeBirthdayMessage(c,$("birthdayBenefit").value)};
   $("birthdayWhatsapp").onclick=async()=>{
@@ -101,7 +101,6 @@ function launchClientWhatsapp(id,message){
   tab.opener=null;tab.location.href=url;
 }
 function appointmentMessage(a,c){
-  if(a.status==="Concluído")return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nComo foi sua experiência com a gente no dia ${formatDate(a.data)}?\n\nE como está a cicatrização da sua tattoo? Se tiver alguma dúvida sobre os cuidados, pode falar por aqui!`;
   return `Olá, ${c.nome}! Aqui é do Palivo Tattoo Studio!\n\nPassando para lembrar da sua tattoo\n\nData: ${formatDate(a.data)}\nHorário: ${formatTime(a.hora)}\nCidade: ${a.cidade}\n\nEstá tudo certo para o nosso encontro? Se precisar falar sobre algum detalhe, é só responder por aqui!`;
 }
 function depositReminderMessage(a,c,value=a.sinal_valor){
@@ -110,12 +109,12 @@ function depositReminderMessage(a,c,value=a.sinal_valor){
 }
 function openAppointmentMessage(id,kind="appointment"){
   const d=Store.load(),a=d.agendamentos.find(a=>a.id===id),c=d.clientes.find(c=>c.id===a?.cliente_id);if(!a||!c)return;
-  if(kind!=="deposit"&&a.status==="Concluído"){$("followupSearch").value=c.nome;showPage("pos-venda");return}
+  if(kind!=="deposit"&&!["Agendado","Confirmado"].includes(a.status))return;
   const deposit=kind==="deposit";if(deposit&&(a.sinal_pago||!["Agendado","Confirmado"].includes(a.status)))return;
   depositMessageAppointmentId=deposit?id:"";$("depositReminderField").hidden=!deposit;
   $("depositReminderValue").value=deposit&&Number(a.sinal_valor)>0?a.sinal_valor:"";
   $("clientMessageForm").querySelector('button[type="submit"]').innerHTML=whatsappIcon()+" Abrir WhatsApp";
-  messageClientId=c.id;$("clientMessageTitle").textContent=deposit?"Lembrar sinal":a.status==="Concluído"?"Como foi o atendimento?":"Lembrar horário";
+  messageClientId=c.id;$("clientMessageTitle").textContent=deposit?"Lembrar sinal":"Lembrar horário";
   $("clientMessageRecipient").innerHTML=`${esc(c.nome)} · ${whatsappContact(c)}`;
   $("clientMessageText").value=deposit?depositReminderMessage(a,c):appointmentMessage(a,c);$("clientMessageError").hidden=true;$("clientMessageDialog").showModal();
 }

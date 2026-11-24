@@ -117,7 +117,7 @@ async function login(email,password){
 }
 function clearFinancialUI(){
   for(const id of ["clientHistory","clientLoyaltySummary","clientList","clientDetails","upcomingReminders"])$(id).textContent="";
-  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory","stockOptionsTitle","stockOptionsBalance","stockOptionsActions","followupPending","followupHistory","followupAvailability"])$(id).textContent="";
+  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory","stockOptionsTitle","stockOptionsBalance","stockOptionsActions","followupPending","followupHistory","followupCoupons","followupAvailability"])$(id).textContent="";
   for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
   $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
   $("purchaseCartridge").innerHTML='<option value="">Selecione</option>';
@@ -334,6 +334,7 @@ function addCartridgeRow(cartuchoId="",quantidade=1){
   row.querySelector(".remove-row").onclick=()=>row.remove();
 }
 function resetSaleForm(){
+  saleAppointmentSource="";
   renderSaleClients();
   setStyles("saleStyles",[]);
   $("saleForm").reset();resetClientPicker("sale");$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;syncSaleClient();syncSalePayment();
@@ -346,6 +347,7 @@ async function saveSale(e){
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
     const saleId=id||Store.uid();$("saleId").value=saleId;
+    payload.agendamento_id=selectedSaleAppointment();
     await Store.saveSale(saleId,payload,materials);
     toast(id?"Venda atualizada.":"Venda salva com sucesso.");resetSaleForm();try{await loadData(false)}catch{toast("Venda salva. Use Atualizar dados para recarregar o painel.","error")}showPage("dashboard");
   }catch(err){toast(err.message,"error")}finally{setBusy(form,false)}
@@ -376,6 +378,7 @@ function editSale(id){
   $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente_id||"";$("saleGender").value=Store.load().clientes.find(c=>c.id===s.cliente_id)?.genero||s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";$("saleInvoice").checked=s.nf_emitida===true;
   syncSalePayment();if(s.forma_pagamento==="Misto")for(const [i,part] of (s.pagamentos||[]).entries()){if(i>1)break;$("paymentMethod"+(i+1)).value=part.forma;$("paymentValue"+(i+1)).value=part.valor}mixedPaymentSummary();
   $("cartridgeRows").innerHTML="";state.usages.filter(u=>u.venda_id===id).forEach(u=>addCartridgeRow(u.cartucho_id,u.quantidade));if(!$("cartridgeRows").children.length)addCartridgeRow();
+  saleAppointmentSource=s.agendamento_id||"";syncSaleAppointment(s.agendamento_id||"");
   $("saleFormTitle").textContent="Editar venda";$("cancelEdit").hidden=false;showPage("nova-venda");window.scrollTo({top:0,behavior:"smooth"});
 }
 async function deleteSale(){

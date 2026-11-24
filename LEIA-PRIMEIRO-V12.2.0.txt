@@ -1,0 +1,29 @@
+PALIVO TATTOO CONTROLE V12.2.0
+
+1. No MESMO projeto Supabase do Controle, abra SQL Editor, crie uma nova consulta, cole TODO o conteúdo de ATUALIZAR-SUPABASE-V12.2.0.sql e clique em Run.
+2. Aguarde a mensagem: V12.2.0 ativada. Dados e estoque preservados.
+3. Extraia o ZIP. Envie o conteúdo extraído para a raiz de Palivo01/controle-palivo-tattoo, substituindo os arquivos. Mantenha a pasta assets com esse nome. Não envie para o repositório do site institucional.
+4. Aguarde a publicação da hospedagem e atualize o Controle. A identificação V12.2.0 aparece no topo.
+
+Execute SOMENTE o SQL V12.2.0 desta atualização. A base necessária é o pós-venda V11.9 que já foi ativado anteriormente. Arquivos SQL não são executados pelo upload no GitHub.
+
+ALTERAÇÕES
+- Pós-venda com limite de 30 dias após data_atendimento da venda. Histórico preservado.
+- Primeiro contato a partir de 5 dias e segundo a partir de 15 dias, separados. O segundo exige o primeiro registrado.
+- Cupom individual de 20% após os dois contatos. Clique em Liberar cupom para gerar código e datas fixas, com vencimento 30 dias após emissão. Reabrir não renova. Marque utilizado depois do uso.
+- Cupons e histórico ficam recolhidos para não sobrecarregar a tela. Mensagens sem emojis.
+- Busca de clientes pelo nome em vendas e agenda sem cidade obrigatória. Local do atendimento continua separado da residência.
+- Estilo Promocional disponível.
+- Concluir atendimento retira o agendamento dos lembretes. Concluído oferece Lançar venda para o administrador.
+- A venda preenche cliente, data, cidade, duração e estilos do agendamento. Valor final e materiais são informados pelo administrador.
+- Nova venda permite escolher um agendamento do cliente para concluir ao salvar. Abrir o formulário não conclui o atendimento.
+- Venda e conclusão são gravadas juntas; um erro cancela ambas. Cada agendamento pode ter só uma venda vinculada. Depois aparece Ver venda.
+- Sinal pago no card esconde Lembrar sinal. Se faltar o valor, abre a edição para preenchê-lo antes de salvar.
+- Agendado/Confirmado usa Lembrar horário. Pós-venda só considera vendas, nunca cria acompanhamento ao agendar.
+
+O cupom não desconta automaticamente valores do financeiro. Ao lançar a venda, informe o valor final realmente cobrado.
+
+VALIDAÇÃO
+25 verificações em PostgreSQL isolado (PGlite), incluindo reaplicação do SQL, preservação de registros, permissões, cupom fixo e fluxo atômico de venda/material/conclusão.
+33 verificações de lógica e formulários em DOM simulado. JavaScript verificado sintaticamente.
+A validação não usou o banco de produção e não enviou mensagens. A inspeção visual em navegador não ficou disponível neste ambiente.

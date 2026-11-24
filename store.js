@@ -1,9 +1,9 @@
 "use strict";
 // Dados exclusivamente do Supabase. A demonstração local não é importada.
 const Store=(()=>{
-  const styles=["Realismo","Fineline","Cristã","Fineart","Colorido","Tradicional","Escrita","Homenagem","Cobertura","Geométrico","Comercial"];
+  const styles=["Realismo","Fineline","Cristã","Fineart","Colorido","Tradicional","Escrita","Homenagem","Cobertura","Geométrico","Comercial","Promocional"];
   const statuses=["Agendado","Confirmado","Concluído","Cancelado","Não compareceu"],cities=["Jacobina","Umburanas","Ourolândia"],genders=["Homem","Mulher","Não informado"];
-  const empty=()=>({clientes:[],agendamentos:[],vendas:[],cartuchos:[],compras_cartuchos:[],venda_cartuchos:[],ajustes_estoque:[],estoque_ajuste_disponivel:false,pos_venda:[],pos_venda_disponivel:false,pos_venda_inicio:null});
+  const empty=()=>({clientes:[],agendamentos:[],vendas:[],cartuchos:[],compras_cartuchos:[],venda_cartuchos:[],ajustes_estoque:[],estoque_ajuste_disponivel:false,pos_venda:[],pos_venda_disponivel:false,pos_venda_inicio:null,cupons_disponiveis:false});
   let data=empty(),profile=null,epoch=0;
   const uid=()=>{
     if(crypto.randomUUID)return crypto.randomUUID();
@@ -44,7 +44,7 @@ const Store=(()=>{
       all("vendas?select=*&order=data_atendimento.desc,criado_em.desc,id.asc"),all("cartuchos?select=*&order=nome.asc,id.asc"),
       all("venda_cartuchos?select=*&order=criado_em.desc,id.asc"),all("compras_cartuchos?select=*&order=data_compra.desc,criado_em.desc,id.asc"),stockAdjustments()
     ]));
-    const [w,posts,finance]=await Promise.all(tasks);const fresh={...empty(),...w,pos_venda:posts.atendimentos,pos_venda_disponivel:posts.enabled,pos_venda_inicio:posts.inicio};
+    const [w,posts,finance]=await Promise.all(tasks);const fresh={...empty(),...w,pos_venda:posts.atendimentos,pos_venda_disponivel:posts.enabled,pos_venda_inicio:posts.inicio,cupons_disponiveis:posts.versao>=122};
     if(finance){[fresh.vendas,fresh.cartuchos,fresh.venda_cartuchos,fresh.compras_cartuchos]=finance;fresh.ajustes_estoque=finance[4].rows;fresh.estoque_ajuste_disponivel=finance[4].enabled}
     // Substitui o cache somente após todas as leituras necessárias concluírem.
     if(started!==epoch)throw new Error("Sessão encerrada.");
@@ -73,9 +73,11 @@ const Store=(()=>{
   function clientStats(d,id){const c=d.clientes.find(c=>c.id===id);return {count:Number(c?.atendimentos)||0,first:c?.primeiro_atendimento,last:c?.ultimo_atendimento}}
   return {styles,statuses,cities,genders,uid,date,load:()=>clone(data),profile:()=>profile,refresh,saveClient,saveAppointment,setArtReady,deleteAppointment,setInvoice,clientStats,
     saveBirthday:async(id,year,details)=>{await rpc("controle_salvar_aniversario",{p_cliente:id,p_ano:year,p_dados:details});const c=data.clientes.find(c=>c.id===id);if(c)c.aniversario_registros={...c.aniversario_registros,[year]:{...c.aniversario_registros?.[year],...details}};await reloadWorkspace()},
-    saveSale:(id,payload,materials)=>rpc("controle_salvar_venda",{p_id:id,p_dados:payload,p_materiais:materials}),
+    saveSale:(id,payload,materials)=>rpc("controle_salvar_venda_v122",{p_id:id,p_dados:payload,p_materiais:materials}),
     deleteClient:async id=>{await rpc("controle_excluir_cliente",{p_id:id});data.clientes=data.clientes.filter(c=>c.id!==id);await reloadWorkspace()},
     saveFollowup:(client,date,stage,done)=>rpc("controle_registrar_pos_venda",{p_cliente:client,p_data:date,p_etapa:stage,p_realizado:done}),
+    issueCoupon:(client,date)=>rpc("controle_emitir_cupom_pos_venda",{p_cliente:client,p_data:date}),
+    useCoupon:(client,date,used)=>rpc("controle_utilizar_cupom_pos_venda",{p_cliente:client,p_data:date,p_utilizado:used}),
     deleteStockType:id=>rpc("controle_excluir_cartucho",{p_id:id}),
     saveStockType:(id,name)=>rpc("controle_criar_cartucho",{p_id:id,p_nome:name}),
     saveStockCount:(id,cart,count,expected,reason)=>rpc("controle_ajustar_estoque",{p_id:id,p_cartucho:cart,p_contagem:count,p_saldo_esperado:expected,p_motivo:reason}),

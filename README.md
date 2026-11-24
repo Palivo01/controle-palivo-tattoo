@@ -1,3 +1,7 @@
+# Palivo Tattoo Controle V12.2.0
+
+Consulte LEIA-PRIMEIRO-V12.2.0.txt para instalar esta atualização. Execute ATUALIZAR-SUPABASE-V12.2.0.sql antes de publicar os novos arquivos.
+
 # Palivo Tattoo — Controle
 
 Aplicação estática conectada ao Supabase para registrar vendas, consumo e entrada de cartuchos.
