@@ -1,61 +1,59 @@
-# Palivo Tattoo Controle V12.2.0
+# Palivo Tattoo Controle V13.0.0
 
-Consulte LEIA-PRIMEIRO-V12.2.0.txt para instalar esta atualização. Execute ATUALIZAR-SUPABASE-V12.2.0.sql antes de publicar os novos arquivos.
+Aplicação estática conectada ao Supabase. Esta entrega não foi publicada nem executada no banco real.
 
-# Palivo Tattoo — Controle
+## Instalação
 
-Aplicação estática conectada ao Supabase para registrar vendas, consumo e entrada de cartuchos.
+1. A base necessária é V12.2.0, com o pós-venda já ativado.
+2. Abra o projeto Supabase do Controle, SQL Editor, nova consulta. Cole TODO o conteúdo de ATUALIZAR-SUPABASE-V13.0.0.sql e execute.
+3. Aguarde: V13.0.0 ativada. Vendas e estoque preservados.
+4. Extraia o ZIP e envie seu conteúdo à raiz do repositório controle-palivo-tattoo, substituindo os arquivos. Preserve a pasta assets. Não envie ao repositório do site institucional.
+5. Aguarde a hospedagem publicar e confira V13.0.0 no topo do Controle.
 
-## Publicar com GitHub + Cloudflare Pages
+Não há npm install ou etapa de compilação. O upload no GitHub não executa SQL.
 
-1. Extraia o ZIP e envie **todos os arquivos e a pasta `assets`** para a raiz de um repositório no GitHub.
-2. No Cloudflare, abra **Workers & Pages → Create → Pages → Connect to Git**.
-3. Selecione o repositório.
-4. Em configuração de build, use:
-   - Framework preset: `None`
-   - Build command: deixe vazio
-   - Build output directory: `/`
-5. Clique em **Save and Deploy**.
+## Relatórios
 
-Não é necessário executar `npm install`: este projeto é HTML, CSS e JavaScript puro.
+Vendas > Exportar > mês > CSV / Excel ou PDF / impressão. O PDF utiliza a janela de impressão, onde pode escolher Salvar como PDF.
+Faturamento bruto é calculado pela data do atendimento. Recebido líquido usa a data de recebimento e pode incluir parcelas de vendas de meses anteriores.
+O relatório mensal geral não herda os filtros do painel.
 
-## Supabase
+## Recebimentos
 
-A URL e a chave publicável já estão configuradas em `app.js`. A chave publicável pode ficar no navegador; a proteção real é feita pelas regras RLS já criadas no Supabase.
+PIX parcelado: informe o valor total da venda, a quantidade de parcelas e o primeiro vencimento. Confira e ajuste cada vencimento antes de salvar. A soma é conferida em centavos. O exemplo de dia 31 vai ao último dia disponível em meses mais curtos e retorna ao dia 31 no mês seguinte.
+A venda inteira entra no faturamento bruto. Somente parcelas marcadas como pagas entram no recebido líquido.
+No ícone de carteira, aparecem parcelas vencidas e as do mês, além de filtros de abertas/pagas. O indicador conta parcelas já vencidas ou vencendo hoje. É um aviso dentro do sistema; não envia cobrança sozinho.
+O botão de WhatsApp prepara a cobrança. Ao receber, marque Receber e informe a data real. É possível reabrir um recebimento registrado por engano.
+Uma venda com parcelas pagas exige reabrir os recebimentos antes de alterar o plano. Editar ou marcar uma parcela paga não duplica valores.
 
-Nunca coloque no projeto a senha do banco nem uma chave `service_role`.
+Cartão de crédito: abra Detalhes do cartão, escolha de 1 a 12 parcelas e confira a data de recebimento. As taxas cadastradas são as fornecidas pelo estúdio: 3,09%; 5,79%; 6,09%; 7,99%; 8,09%; 8,19%; 9,49%; 9,68%; 10,37%; 11,05%; 12,27%; 12,38%.
+Em pagamento misto, a taxa incide apenas sobre a parte de crédito. A parte de PIX/dinheiro é recebida na data da venda. A parte de crédito usa a data informada nos detalhes.
+O valor recebido do cartão é reconhecido na data cadastrada, nunca antes de ela chegar. Se a operadora mudar a data, atualize o registro.
+O recebido líquido desconta taxas de cartão, não despesas do estúdio. Vendas antigas de cartão sem parcelamento informado não recebem uma taxa presumida; edite essas vendas para incluí-las no cálculo.
+O sinal continua informativo e não é somado novamente ao financeiro.
 
-## Uso
+## Agendamento e mensagens
 
-Entre com o usuário criado em **Supabase → Authentication → Users**. No primeiro acesso, o sistema cadastra os tipos de cartucho padrão. Cadastre compras para aumentar o estoque e informe os cartuchos usados em cada venda para dar baixa automática.
+Após um novo agendamento, abre a confirmação para revisar e enviar. Não há envio automático.
+Informe Valor combinado para a mensagem calcular o restante na sessão, descontando apenas sinal marcado como pago. Sem valor combinado, a mensagem informa que o valor está a combinar.
+O ícone do WhatsApp reúne Confirmar agendamento, Lembrar horário, Lembrar sinal (quando pendente) e Falar no WhatsApp.
+A localização usa a cidade do atendimento, não a residência do cliente. As três localizações fornecidas estão pré-configuradas com links compactos do Google Maps por coordenadas. No ícone de localização, podem ser editadas.
 
-Os cartuchos aparecem organizados pelas famílias RL, RM e RS, sempre em ordem numérica. Vendas marcadas como Permuta, Cortesia ou Retoque permanecem no histórico de atendimentos, mas não entram no faturamento nem no ticket médio. A opção Transferência não faz parte das formas de pagamento disponíveis.
+## Pós-venda
 
-Todos os cartuchos começam com saldo zero. O saldo é calculado pelas entradas registradas menos o consumo nas vendas, sem permitir valor negativo. Entradas lançadas por engano podem ser excluídas no histórico, e o saldo é recalculado imediatamente. Os alertas de estoque são: Excelente (20 ou mais), Disponível (10–19), Pouco (5–9), Acabando (1–4) e Não há (zero).
+Mantém primeiro contato a partir de 5 dias e segundo a partir de 15, com limite de 30 dias para acompanhamento.
+A segunda mensagem já inclui o convite de 20% para uma nova tattoo até 60 dias depois da data do atendimento. Contato no dia 15 deixa 45 dias para retornar. Se o contato acontecer mais tarde, a data final não é prorrogada.
+Ao registrar o segundo contato, o convite fica salvo. Não há código aleatório nos novos convites nem na mensagem.
+A seção recolhida de retornos permite consultar a data e marcar utilização. Convites que já tinham sido emitidos na versão anterior conservam seu vencimento original.
 
-O registro de entrada de estoque solicita somente data, cartucho e quantidade.
+## Privacidade e estoque
 
-O painel inclui distribuição geral por gênero, com Mulher em rosa e Homem em azul. A duração do atendimento é preenchida em campos separados de horas e minutos para funcionar corretamente no teclado numérico de celulares.
+O olho no topo oculta valores e gráficos financeiros na tela. A preferência fica nesse navegador. Não altera dados, exportações nem mensagens preparadas para clientes.
+O cartão de Conferência de estoque foi retirado. Correção de saldo, movimentações e exclusão de tipos continuam disponíveis ao abrir cada cartucho. A atualização não adiciona compras, consumos ou saldos.
+Iuri mantém o acesso à agenda/clientes/pós-venda. Não recebe parcelas PIX, taxas ou faturamento.
 
-O gráfico mensal exibe o faturamento acima de cada barra e usa alturas proporcionais. A distribuição por cidade usa degradês próprios para Jacobina (verde), Umburanas (azul) e Ourolândia (amarelo). A área de formas de pagamento mostra percentual e quantidade de pagamentos em um painel mais compacto.
+## Validação
 
-Os arquivos de estilo e script usam identificação de versão para impedir que o navegador mantenha uma visualização antiga após a publicação de uma atualização.
-
-A política de segurança permite os estilos proporcionais gerados pelo próprio painel para alturas e larguras de gráficos, mantendo scripts restritos aos arquivos do site.
-
-## Recuperação de senha (atualização 13)
-
-1. Publique todos os arquivos desta versão em https://controle.palivotattoo.com.br/.
-2. No MESMO projeto Supabase usado pelo controle, abra Authentication → URL Configuration.
-3. Em Site URL, informe https://controle.palivotattoo.com.br/ e salve.
-4. Em Redirect URLs → Add URL, adicione exatamente:
-   https://controle.palivotattoo.com.br/?recovery=1
-5. No site do controle, clique em Esqueci minha senha, informe o e-mail e solicite um novo link.
-6. Abra o e-mail mais recente, crie e confirme a nova senha e entre novamente.
-
-O envio do e-mail não altera a senha. A alteração só ocorre ao salvar a nova senha no formulário.
-Links antigos para localhost devem ser substituídos por uma nova solicitação após configurar e publicar.
-O fluxo padrão do Supabase envia os tokens no fragmento da URL. O controle valida a sessão na API Auth,
-remove os tokens da barra de endereço e oferece o formulário antes de carregar o painel.
-Se você alterou o template de e-mail, mantenha o link padrão {{ .ConfirmationURL }}.
-Nenhuma tabela, venda ou estoque é alterado por esta atualização.
+Testes em PostgreSQL isolado (PGlite), cobrindo reaplicação, preservação de registros, permissões, 12 taxas de cartão, misto, parcelas PIX, recebimento, retorno e estoque.
+Testes em DOM simulado cobrindo formulários, relatórios, máscara financeira, links e mensagens. JavaScript validado sintaticamente.
+Não foram usados dados de produção, enviados WhatsApps ou feitas publicações. Não houve inspeção visual completa em navegador.

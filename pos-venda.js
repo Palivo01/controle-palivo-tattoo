@@ -17,18 +17,17 @@ function followupTasks(rows,today=followupToday()){
 }
 function makeFollowupMessage(row,stage){
  const date=formatDate(row.data_atendimento);
- return stage===5?`Olá, ${row.nome}! Aqui é do Palivo Tattoo Studio!\n\nPassando para saber como você está e como está a cicatrização da tattoo que fizemos em ${date}.\n\nComo foram esses primeiros dias? Ficou alguma dúvida sobre os cuidados? Me conta e, se puder, envie uma foto para eu acompanhar de perto.\n\nEstou por aqui para te ajudar!`:`Olá, ${row.nome}! Aqui é do Palivo Tattoo Studio!\n\nComo está a tattoo que fizemos em ${date}? Quero saber como foi a cicatrização até aqui e se ficou alguma dúvida.\n\nSe puder, me envie uma foto para eu conferir como ela está. Mesmo que pareça cicatrizada, continue seguindo os cuidados que combinamos.\n\nObrigado pela confiança no meu trabalho!`;
+ return stage===5?`Olá, ${row.nome}! Aqui é do Palivo Tattoo Studio!\n\nPassando para saber como você está e como está a cicatrização da tattoo que fizemos em ${date}.\n\nComo foram esses primeiros dias? Ficou alguma dúvida sobre os cuidados? Me conta e, se puder, envie uma foto para eu acompanhar de perto.\n\nEstou por aqui para te ajudar!`:`Olá, ${row.nome}! Aqui é do Palivo Tattoo Studio!\n\nComo está a tattoo que fizemos em ${date}? Quero saber como foi a cicatrização até aqui e se ficou alguma dúvida.\n\nSe puder, me envie uma foto para eu conferir como ela está. Mesmo que pareça cicatrizada, continue seguindo os cuidados que combinamos.\n\nObrigado pela confiança no meu trabalho!${returnInvitation(row)}`;
 }
 function couponEligible(row,today=followupToday()){
- const age=followupAge(row.data_atendimento,today);
- return !!row.etapa5?.realizado&&!!row.etapa15?.realizado&&age>=15&&age<=30;
+ const age=followupAge(row.data_atendimento,today);return !!row.etapa5?.realizado&&!!row.etapa15?.realizado&&age>=15&&age<=60;
 }
 function couponActive(row,today=followupToday()){
  return !!row.cupom&&!row.cupom.utilizado&&row.etapa5?.realizado===true&&row.etapa15?.realizado===true&&row.cupom.expira_em>=today;
 }
-function makeCouponMessage(row,coupon){
- return `Olá, ${row.nome}! Aqui é do Palivo Tattoo Studio!\n\nFoi muito bom acompanhar sua tattoo! Para a próxima, preparei um cupom de 20% de desconto para você.\n\nCupom: ${coupon.codigo}\nVocê pode usá-lo para fazer uma nova tatuagem até ${formatDate(coupon.expira_em)}.\n\nJá tem alguma ideia em mente? Me manda por aqui e combinamos os detalhes!`;
-}
+function returnDeadline(row){return row.cupom?.expira_em||calendarDay(row.data_atendimento,60)}
+function returnInvitation(row){return `\n\nE quero continuar fazendo parte da sua história! Já pensou na próxima tattoo? Separei 20% de desconto para você fazer uma nova tatuagem até ${formatDate(returnDeadline(row))}.\n\nMe manda aquela ideia que está guardada e vamos planejar sua próxima sessão juntos!`}
+function makeCouponMessage(row,coupon){return `Olá, ${row.nome}! Aqui é do Palivo Tattoo Studio!\n\nFoi muito bom cuidar da sua tattoo e acompanhar você por aqui!${returnInvitation({...row,cupom:coupon})}`}
 function initFollowups(){
  $("followupSearch").oninput=renderFollowups;
  const open=e=>{const coupon=e.target.closest("[data-coupon-open]");if(coupon){openCoupon(coupon.dataset.couponOpen);return}const b=e.target.closest("[data-followup-open]");if(b)openFollowup(b.dataset.followupOpen,Number(b.dataset.stage))};
@@ -57,18 +56,18 @@ function followupCard(row,stage,done=false){
  return `<article class="panel followup-card ${done?"followup-complete":""}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Abrir ${stage===5?"primeiro":"segundo"} contato de ${esc(row.nome)}" data-followup-open="${esc(key)}" data-stage="${stage}"><div><h3>${esc(row.nome)}</h3><p>Tattoo em ${formatDate(row.data_atendimento)} · ${age} dias</p>${done?`<small>${stage===5?"1º":"2º"} contato realizado${record?.realizado_em?` em ${formatDate(record.realizado_data||record.realizado_em.slice(0,10))}`:""}${record?.responsavel?` · ${esc(record.responsavel)}`:""}${expired?" · Acompanhamento encerrado":""}</small>`:`<small>${esc(row.cidade||"")}</small>`}</div>${done?'<span class="followup-complete-label">Realizado</span>':`<button type="button" class="btn whatsapp-btn" data-followup-open="${esc(key)}" data-stage="${stage}">${whatsappIcon()} ${stage===5?"1º":"2º"} contato</button>`}</article>`;
 }
 function couponCard(row,enabled){
- const coupon=row.cupom,available=coupon?couponActive(row):couponEligible(row),label=!coupon?"Liberar cupom de 20%":coupon.utilizado?"Cupom utilizado":coupon.expira_em<followupToday()?"Cupom expirado":"Abrir cupom";
- return `<article class="panel followup-card coupon-card"><div><h3>${esc(row.nome)}</h3><p>Tattoo em ${formatDate(row.data_atendimento)}</p><small class="coupon-status">${coupon?`${esc(coupon.codigo)} · Até ${formatDate(coupon.expira_em)}`:"Dois contatos realizados · 20% na próxima tattoo"}</small></div><button class="btn ${coupon?"ghost":"primary"}" data-coupon-open="${esc(followupKey(row))}" ${!enabled||(!available&&!coupon)?"disabled":""}>${label}</button></article>`;
+ const coupon=row.cupom,available=coupon?couponActive(row):couponEligible(row),label=!coupon?"Retorno · 20%":coupon.utilizado?"Cupom utilizado":coupon.expira_em<followupToday()?"Cupom expirado":"Ver retorno";
+ return `<article class="panel followup-card coupon-card"><div><h3>${esc(row.nome)}</h3><p>Tattoo em ${formatDate(row.data_atendimento)}</p><small class="coupon-status">${coupon?`20% de desconto · Até ${formatDate(coupon.expira_em)}`:"Dois contatos realizados · 20% na próxima tattoo"}</small></div><button class="btn ${coupon?"ghost":"primary"}" data-coupon-open="${esc(followupKey(row))}" ${!enabled||(!available&&!coupon)?"disabled":""}>${label}</button></article>`;
 }
 function renderFollowups(){
  const d=Store.load(),rows=d.pos_venda||[],tasks=followupTasks(rows),q=normalizeClientText($("followupSearch").value),filtered=tasks.filter(r=>normalizeClientText(r.nome).includes(q));
  document.querySelectorAll("[data-followup-count]").forEach(el=>{el.textContent=tasks.length>99?"99+":String(tasks.length);el.hidden=!d.pos_venda_disponivel||!tasks.length;el.closest("button").setAttribute("aria-label",`Pós-venda${tasks.length?`, ${tasks.length} acompanhamento(s) pendente(s)`:""}`)});
- $("followupAvailability").hidden=d.cupons_disponiveis;$("followupAvailability").textContent="Execute a atualização V12.2.0 no Supabase para ativar o novo fluxo e os cupons.";
+ $("followupAvailability").hidden=d.cupons_disponiveis;$("followupAvailability").textContent="Execute a atualização V13.0.0 no Supabase para ativar o novo fluxo e os cupons.";
  $("followupTotal").textContent=d.pos_venda_disponivel?`${tasks.length} acompanhamento(s) pendente(s)`:"";
  $("followupPending").innerHTML=!d.pos_venda_disponivel?"":filtered.length?[5,15].map(stage=>{const group=filtered.filter(r=>r.stage===stage);return group.length?`<section class="followup-group"><div class="followup-group-head"><h3>${stage===5?"1º contato":"2º contato"}</h3><span>A partir de ${stage} dias · ${group.length}</span></div>${group.map(r=>followupCard(r,stage)).join("")}</section>`:""}).join(""):`<div class="panel empty"><h3>${q?"Nenhum cliente encontrado.":"Tudo em dia por aqui."}</h3><p>${q?"Tente outro nome.":"Os contatos aparecem a partir de 5 e 15 dias, até 30 dias após a tattoo."}</p></div>`;
  const matching=rows.filter(r=>normalizeClientText(r.nome).includes(q));
  const coupons=matching.filter(r=>r.cupom||couponEligible(r)).sort((a,b)=>(b.cupom?.emitido_em||b.data_atendimento).localeCompare(a.cupom?.emitido_em||a.data_atendimento));
- $("followupCouponsSummary").textContent=`Cupons de retorno (${coupons.length})`;$("followupCoupons").innerHTML=coupons.map(r=>couponCard(r,d.cupons_disponiveis)).join("")||'<p class="muted">Os cupons serão liberados após os dois contatos.</p>';
+ $("followupCouponsSummary").textContent=`Retorno com 20% (${coupons.length})`;$("followupCoupons").innerHTML=coupons.map(r=>couponCard(r,d.cupons_disponiveis)).join("")||'<p class="muted">Os cupons serão liberados após os dois contatos.</p>';
  const history=matching.flatMap(r=>[5,15].filter(stage=>r["etapa"+stage]?.realizado).map(stage=>({r,stage,at:r["etapa"+stage].realizado_em||""}))).sort((a,b)=>b.at.localeCompare(a.at));
  $("followupHistorySummary").textContent=`Contatos realizados (${history.length})`;
  $("followupHistory").innerHTML=[5,15].map(stage=>{const group=history.filter(h=>h.stage===stage);return `<details class="followup-history-group"><summary>${stage===5?"1º contato · A partir de 5 dias":"2º contato · A partir de 15 dias"} (${group.length})</summary>${group.map(({r})=>followupCard(r,stage,true)).join("")||'<p class="muted">Nenhum contato registrado.</p>'}</details>`}).join("");
@@ -89,6 +88,6 @@ async function openCoupon(key){
  try{
   let coupon=row.cupom;
   if(!coupon){if(!couponEligible(row))throw new Error("Conclua os dois contatos antes de liberar o cupom.");coupon=await Store.issueCoupon(row.cliente_id,row.data_atendimento);await Store.refresh()}
-  couponSelection=key;$("couponTitle").textContent=row.nome;$("couponDates").textContent=`${coupon.codigo} · Emitido em ${formatDate(coupon.emitido_em)} · Até ${formatDate(coupon.expira_em)}`;$("couponMessage").value=makeCouponMessage(row,coupon);$("couponUsed").checked=coupon.utilizado===true;$("couponError").hidden=true;$("couponWhatsapp").innerHTML=whatsappIcon()+" Abrir WhatsApp";$("couponWhatsapp").disabled=!couponActive({...row,cupom:coupon});$("couponDialog").showModal();renderFollowups();
+  couponSelection=key;$("couponTitle").textContent=row.nome;$("couponDates").textContent=`20% de desconto · Até ${formatDate(coupon.expira_em)}`;$("couponMessage").value=makeCouponMessage(row,coupon);$("couponUsed").checked=coupon.utilizado===true;$("couponError").hidden=true;$("couponWhatsapp").innerHTML=whatsappIcon()+" Abrir WhatsApp";$("couponWhatsapp").disabled=!couponActive({...row,cupom:coupon});$("couponDialog").showModal();renderFollowups();
  }catch(err){toast(err.message,"error")}
 }

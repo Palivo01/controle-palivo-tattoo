@@ -57,7 +57,7 @@ function initClientTools(){
   };
   $("clientGenderFilter").onchange=renderClients;
   $("clientDetails").onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.client)openClient(b.dataset.client);if(b.dataset.book)openAppointment("",b.dataset.book);if(b.dataset.birthday)openBirthday(b.dataset.birthday)};
-  $("upcomingReminders").onclick=e=>{const b=e.target.closest("[data-client-message]");if(b)openAppointmentMessage(b.dataset.clientMessage)};
+  $("upcomingReminders").onclick=e=>{const menu=e.target.closest("[data-whatsapp-menu]");if(menu){openWhatsappMenu(menu.dataset.whatsappMenu);return}const b=e.target.closest("[data-client-message]");if(b)openAppointmentMessage(b.dataset.clientMessage)};
   $("clientBirthdayFilter").onchange=renderClients;$("clientCityFilter").onchange=renderClients;
   $("clientMessageForm").onsubmit=e=>{
     e.preventDefault();$("clientMessageError").hidden=true;
@@ -114,9 +114,9 @@ function openAppointmentMessage(id,kind="appointment"){
   depositMessageAppointmentId=deposit?id:"";$("depositReminderField").hidden=!deposit;
   $("depositReminderValue").value=deposit&&Number(a.sinal_valor)>0?a.sinal_valor:"";
   $("clientMessageForm").querySelector('button[type="submit"]').innerHTML=whatsappIcon()+" Abrir WhatsApp";
-  messageClientId=c.id;$("clientMessageTitle").textContent=deposit?"Lembrar sinal":"Lembrar horário";
+  messageClientId=c.id;$("clientMessageTitle").textContent=deposit?"Lembrar sinal":kind==="confirmation"?"Confirmar agendamento":"Lembrar horário";
   $("clientMessageRecipient").innerHTML=`${esc(c.nome)} · ${whatsappContact(c)}`;
-  $("clientMessageText").value=deposit?depositReminderMessage(a,c):appointmentMessage(a,c);$("clientMessageError").hidden=true;$("clientMessageDialog").showModal();
+  $("clientMessageText").value=deposit?depositReminderMessage(a,c):kind==="confirmation"?appointmentConfirmation(a,c):appointmentMessage(a,c);$("clientMessageError").hidden=true;$("clientMessageDialog").showModal();
 }
 function birthdayMonthName(c){return new Intl.DateTimeFormat("pt-BR",{month:"long"}).format(new Date(2000,birthMonth(c)-1,15))}
 function makeBirthdayMessage(c){
@@ -163,7 +163,7 @@ function renderUpcomingReminders(){
  panel.hidden=!rows.length||!$("page-agenda").classList.contains("active");
  panel.innerHTML=rows.length?`<div class="reminder-heading"><span class="eyebrow">LEMBRETES</span><h3>Seus próximos atendimentos</h3></div>${[today,tomorrowDate()].map(day=>{
  const group=rows.filter(a=>a.data===day);if(!group.length)return "";
- return `<section class="reminder-group"><h4>${day===today?"Hoje":"Amanhã"} <small>${formatDate(day)}</small></h4><div class="reminder-list">${group.map(a=>{const c=data.clientes.find(c=>c.id===a.cliente_id);return `<div class="reminder-row"><div><strong>${esc(c?.nome||"Cliente")}</strong><span>${formatTime(a.hora)} · ${esc(a.cidade)}</span></div><button type="button" class="btn whatsapp-btn" data-client-message="${esc(a.id)}">${whatsappIcon()} Lembrar horário</button></div>`}).join("")}</div></section>`;
+ return `<section class="reminder-group"><h4>${day===today?"Hoje":"Amanhã"} <small>${formatDate(day)}</small></h4><div class="reminder-list">${group.map(a=>{const c=data.clientes.find(c=>c.id===a.cliente_id);return `<div class="reminder-row"><div><strong>${esc(c?.nome||"Cliente")}</strong><span>${formatTime(a.hora)} · ${esc(a.cidade)}</span></div>${appointmentWhatsappButton(a)}</div>`}).join("")}</div></section>`;
  }).join("")}`:"";
 }
 

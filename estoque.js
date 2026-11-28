@@ -28,7 +28,7 @@ function stockIssues(d){
 }
 function renderStockAudit(){
  const d=Store.load(),issues=stockIssues(d);
- $("stockAuditSummary").innerHTML=`<h3>Conferência de estoque</h3>${!d.estoque_ajuste_disponivel?'<p class="stock-warning">Aplique a atualização V11.8 do Supabase para habilitar correções e cadastro de tipos.</p>':""}${issues.length?`<details><summary>${issues.length} ponto(s) para conferir</summary><ul>${issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul><p class="muted">Indícios para conferência. Nada é corrigido automaticamente.</p></details>`:'<p class="muted">Nenhuma inconsistência estrutural encontrada nos registros carregados. A contagem física deve ser conferida em cada cartucho.</p>'}`;
+ if(!$("stockAuditSummary"))return;$("stockAuditSummary").innerHTML=`<h3>Conferência de estoque</h3>${!d.estoque_ajuste_disponivel?'<p class="stock-warning">Aplique a atualização V11.8 do Supabase para habilitar correções e cadastro de tipos.</p>':""}${issues.length?`<details><summary>${issues.length} ponto(s) para conferir</summary><ul>${issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul><p class="muted">Indícios para conferência. Nada é corrigido automaticamente.</p></details>`:'<p class="muted">Nenhuma inconsistência estrutural encontrada nos registros carregados. A contagem física deve ser conferida em cada cartucho.</p>'}`;
 }
 function openStockCount(id){
  if(!isAdmin())return;const c=state.stock.find(c=>c.id===id);if(!c||!stockIsActive(c))return;

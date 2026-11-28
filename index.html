@@ -10,15 +10,17 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/icone-palivo-512.png?v=palivo1">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-palivo-180.png?v=palivo1">
   <title>Palivo Tattoo | Controle</title>
-  <link rel="stylesheet" href="style.css?v=crm1220">
-  <script defer src="store.js?v=crm1220"></script>
-  <script defer src="app.js?v=crm1220"></script>
-  <script defer src="icons.js?v=crm1220"></script>
-  <script defer src="agenda.js?v=crm1220"></script>
-  <script defer src="clientes.js?v=crm1220"></script>
-  <script defer src="estoque.js?v=crm1220"></script>
-  <script defer src="pos-venda.js?v=crm1220"></script>
-  <script defer src="fluxo-venda.js?v=crm1220"></script>
+  <link rel="stylesheet" href="style.css?v=crm1300">
+  <script defer src="store.js?v=crm1300"></script>
+  <script defer src="app.js?v=crm1300"></script>
+  <script defer src="icons.js?v=crm1300"></script>
+  <script defer src="agenda.js?v=crm1300"></script>
+  <script defer src="clientes.js?v=crm1300"></script>
+  <script defer src="estoque.js?v=crm1300"></script>
+  <script defer src="pos-venda.js?v=crm1300"></script>
+  <script defer src="fluxo-venda.js?v=crm1300"></script>
+  <script defer src="financeiro.js?v=crm1300"></script>
+  <script defer src="comunicacao.js?v=crm1300"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -80,7 +82,7 @@
     </header>
 
     <main class="content">
-      <div class="account-bar"><span id="profileLabel"></span><small class="muted">V12.2.0</small><button id="refreshData" class="text-btn" type="button">Atualizar dados</button><span id="syncStatus" role="status"></span></div>
+      <div class="account-bar"><span id="profileLabel"></span><small class="muted">V13.0.0</small><div class="account-tools"><button id="financePrivacy" type="button" class="icon-btn" aria-label="Ocultar valores" title="Ocultar valores"></button><button id="receivablesButton" class="icon-btn admin-only" type="button" aria-label="Parcelas PIX" title="Parcelas PIX"></button><button id="studioSettingsButton" class="icon-btn admin-only" type="button" aria-label="Localizações dos estúdios" title="Estúdios"></button><button id="refreshData" class="icon-btn" type="button" aria-label="Atualizar dados" title="Atualizar dados"></button></div><span id="syncStatus" role="status"></span></div>
       <section id="page-dashboard" class="admin-only page active">
         <div class="page-head">
           <div><p class="eyebrow">PAINEL</p><h2>Visão geral</h2><p class="muted" id="todayLabel"></p></div>
@@ -105,6 +107,7 @@
           <article class="metric"><small>Tempo tatuando</small><strong id="metricHours">0h</strong><span>no período</span></article>
         </div>
 
+        <details class="panel net-revenue-panel"><summary>Recebido líquido</summary><div class="net-revenue-metrics"><div><small>Recebido no período</small><strong id="netReceived"></strong></div><div><small>Taxas descontadas</small><strong id="netFees"></strong></div><div><small>PIX a receber (total)</small><strong id="netOutstanding"></strong></div></div><small id="legacyCreditNote" class="muted"></small></details>
         <div class="dashboard-grid">
           <article class="panel chart-panel"><div class="panel-head"><div><small>FATURAMENTO</small><h3>Vendas por mês</h3></div></div><div id="monthlyChart" class="chart"></div></article>
           <article class="panel distribution-panel"><div class="panel-head"><div><small>DISTRIBUIÇÃO</small><h3>Por cidade</h3></div></div><div id="cityChart" class="bar-list"></div><div class="distribution-divider"></div><div class="panel-head gender-head"><div><small>PORCENTAGEM GERAL</small><h3>Por gênero</h3></div></div><div id="genderChart" class="bar-list gender-chart"></div></article>
@@ -115,7 +118,7 @@
       </section>
 
       <section id="page-nova-venda" class="admin-only page">
-        <div class="page-head"><div><p class="eyebrow">ATENDIMENTO</p><h2 id="saleFormTitle">Nova venda</h2><p class="muted">Registre tudo em uma única tela.</p></div></div>
+        <div class="page-head"><div><p class="eyebrow">ATENDIMENTO</p><h2 id="saleFormTitle">Nova venda</h2></div></div>
         <form id="saleForm" class="panel form-card">
           <input id="saleId" type="hidden">
           <div id="saleAppointmentFields" class="sale-appointment-fields" hidden>
@@ -128,10 +131,12 @@
             <label>Gênero do cadastro<select id="saleGender" required disabled><option value="">Selecione</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label>
             <label>Cidade do atendimento *<input id="saleCity" type="text" list="citiesList" placeholder="Ex.: Umburanas" required><datalist id="citiesList"><option value="Umburanas"><option value="Jacobina"><option value="Ourolândia"></datalist></label>
             <label>Valor (R$)<input id="saleValue" type="number" min="0" step="0.01" placeholder="350,00" required></label>
-            <label>Forma de pagamento<select id="salePayment" required><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Permuta</option><option>Cortesia</option><option>Retoque</option><option>Misto</option></select></label>
+            <label>Forma de pagamento<select id="salePayment" required><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Permuta</option><option>Cortesia</option><option>Retoque</option><option>Misto</option><option>PIX parcelado</option></select></label>
             <fieldset class="mixed-payment span-2" id="mixedPaymentFields" hidden disabled><legend>Dividir pagamento</legend><div class="form-grid"><label>Forma 1<select id="paymentMethod1" required><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option></select></label><label>Valor 1 (R$)<input id="paymentValue1" type="number" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" required></label><label>Forma 2<select id="paymentMethod2" required><option>PIX</option><option selected>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option></select></label><label>Valor 2 (R$)<input id="paymentValue2" type="number" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" required></label><p id="mixedPaymentSummary" class="mixed-payment-summary span-2" aria-live="polite"></p></div></fieldset>
             <fieldset class="duration-field"><legend>Duração da tatuagem</legend><div class="duration-inputs"><label><span>Horas</span><input id="saleDurationHours" type="number" inputmode="numeric" min="0" max="24" value="0" required></label><b aria-hidden="true">:</b><label><span>Minutos</span><input id="saleDurationMinutes" type="number" inputmode="numeric" min="0" max="59" value="30" required></label></div></fieldset>
           </div>
+          <details id="creditDetails" class="panel payment-details" hidden><summary>Detalhes do cartão</summary><div class="form-grid"><label>Parcelas no cartão<select id="creditInstallments"><option value="">Selecione</option><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="11">11x</option><option value="12">12x</option></select></label><label>Data de recebimento<input id="creditReceiptDate" type="date"></label></div><p id="creditNetPreview" class="private-value"></p></details>
+          <fieldset id="pixInstallmentFields" class="mixed-payment" hidden disabled><legend>PIX parcelado</legend><div class="form-grid"><label>Parcelas<input id="pixInstallmentCount" type="number" min="1" max="24" value="2"></label><label>Primeiro vencimento<input id="pixFirstDue" type="date"></label></div><div id="pixScheduleRows"></div></fieldset>
           <fieldset class="styles-field"><legend>Estilos da tatuagem</legend><div id="saleStyles" class="style-options"></div></fieldset>
           <div class="form-section-head"><div><small>MATERIAL UTILIZADO</small><h3>Cartuchos</h3></div><button id="addCartridgeRow" class="btn small ghost" type="button">＋ Adicionar</button></div>
           <div id="cartridgeRows" class="cartridge-rows"></div>
@@ -142,20 +147,20 @@
       </section>
 
       <section id="page-vendas" class="admin-only page">
-        <div class="page-head"><div><p class="eyebrow">HISTÓRICO</p><h2>Vendas</h2><p class="muted">Consulte, edite ou exclua um atendimento.</p></div><button class="btn primary jump-sale">＋ Nova venda</button></div>
+        <div class="page-head"><div><p class="eyebrow">HISTÓRICO</p><h2>Vendas</h2></div><div class="head-actions"><button class="btn ghost" id="exportSalesButton" type="button">Exportar</button><button class="btn primary jump-sale">Nova venda</button></div></div>
         <div class="search-box">⌕ <input id="salesSearch" type="search" placeholder="Buscar cliente, cidade ou pagamento"></div>
         <div id="salesList" class="sales-list"></div>
       </section>
 
       <section id="page-estoque" class="admin-only page">
-        <div class="page-head"><div><p class="eyebrow">MATERIAIS</p><h2>Estoque de cartuchos</h2><p class="muted">Confira os materiais e ajuste a contagem física quando necessário.</p></div><button class="btn primary" data-page-link="compras">＋ Registrar entrada</button></div>
+        <div class="page-head"><div><p class="eyebrow">MATERIAIS</p><h2>Estoque de cartuchos</h2></div><button class="btn primary" data-page-link="compras">＋ Registrar entrada</button></div>
         <button id="newStockType" class="btn ghost stock-new-type" type="button">Novo tipo de cartucho</button>
         <div id="stockSummary" class="stock-summary"></div>
-        <div id="stockAuditSummary" class="stock-audit panel"></div><div id="stockGrid"></div>
+        <div id="stockGrid"></div>
       </section>
 
       <section id="page-compras" class="admin-only page">
-        <div class="page-head"><div><p class="eyebrow">ESTOQUE</p><h2>Entrada de cartuchos</h2><p class="muted">Registre uma compra para atualizar o saldo.</p></div></div>
+        <div class="page-head"><div><p class="eyebrow">ESTOQUE</p><h2>Entrada de cartuchos</h2></div></div>
         <form id="purchaseForm" class="panel form-card compact">
           <div class="form-grid">
             <label>Data da compra<input id="purchaseDate" type="date" required></label>
@@ -170,7 +175,7 @@
 
       <section id="upcomingReminders" class="panel upcoming-reminders" role="region" aria-label="Atendimentos de hoje e amanhã" hidden></section>
       <section id="page-agenda" class="page">
-        <div class="page-head"><div><p class="eyebrow">SEU TEMPO, BEM ORGANIZADO</p><h2>Agenda</h2><p class="muted">Atendimentos do estúdio, em um só lugar.</p></div><button id="newAppointment" class="btn primary">＋ Agendar cliente</button></div>
+        <div class="page-head"><div><p class="eyebrow">SEU TEMPO, BEM ORGANIZADO</p><h2>Agenda</h2></div><button id="newAppointment" class="btn primary">＋ Agendar cliente</button></div>
         <div class="agenda-metrics" id="agendaMetrics"></div>
         <div class="panel agenda-toolbar">
           <div class="date-navigation"><button id="previousDate" class="btn ghost" aria-label="Período anterior">‹</button><input type="date" id="agendaDate" aria-label="Data da agenda"><button id="nextDate" class="btn ghost" aria-label="Próximo período">›</button><button id="todayAgenda" class="btn ghost">Hoje</button></div>
@@ -188,7 +193,7 @@
         <details class="panel followup-history"><summary id="followupHistorySummary">Contatos realizados</summary><div id="followupHistory"></div></details>
       </section>
       <section id="page-clientes" class="page">
-        <div class="page-head"><div><p class="eyebrow">RELACIONAMENTO</p><h2>Clientes</h2><p class="muted">Contato, cidade e histórico de agendamentos.</p></div><button id="newClient" class="btn primary">＋ Novo cliente</button></div>
+        <div class="page-head"><div><p class="eyebrow">RELACIONAMENTO</p><h2>Clientes</h2></div><button id="newClient" class="btn primary">＋ Novo cliente</button></div>
         <div class="search-box">⌕ <input id="clientSearch" type="search" placeholder="Buscar nome, WhatsApp ou cidade"></div><div class="client-filters"><label>Cidade do cadastro<select id="clientCityFilter"><option value="all">Todas as cidades</option></select></label><label>Aniversariantes<select id="clientBirthdayFilter"><option value="all">Todos os clientes</option><option value="current">Aniversariantes deste mês</option><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></label><label>Gênero<select id="clientGenderFilter"><option value="all">Todos</option><option>Homem</option><option>Mulher</option><option>Não informado</option></select></label><span id="clientResultCount" class="muted" aria-live="polite"></span></div><div id="clientList" class="client-grid"></div>
       </section>
 
@@ -214,7 +219,7 @@
   <dialog id="appointmentDialog" class="wide-dialog"><form id="appointmentForm" class="dialog-content form-stack">
     <div class="panel-head"><div><p class="eyebrow">AGENDA</p><h3 id="appointmentTitle">Novo agendamento</h3></div><button type="button" class="icon-btn" data-close="appointmentDialog" aria-label="Fechar">×</button></div>
     <input id="appointmentId" type="hidden">
-    <div class="form-grid"><div class="client-picker span-2"><div class="picker-filters"><label>Cliente<select id="appointmentClientMode"><option value="existing">Cliente cadastrado</option><option value="new">Novo cliente</option></select></label><label>Cidade do cadastro<select id="appointmentClientCity"></select></label><label>Buscar nome<input id="appointmentClientSearch" type="search" placeholder="Nome do cliente" autocomplete="off"></label></div><label>Cliente *<select id="appointmentClient" required></select></label><button id="newClientFromAppointment" type="button" class="text-btn">Cadastrar cliente</button><small id="appointmentClientInfo" class="muted"></small></div><label>Data *<input id="appointmentDate" type="date" required></label><label>Horário *<input id="appointmentTime" type="time" required></label><label>Duração prevista (minutos) *<input id="appointmentDuration" type="number" min="15" max="720" step="5" value="60" required></label><label>Cidade do atendimento *<select id="appointmentCity" required><option>Jacobina</option><option>Umburanas</option><option>Ourolândia</option></select></label><label>Status<select id="appointmentStatus"><option>Agendado</option><option>Confirmado</option><option>Concluído</option><option>Cancelado</option><option>Não compareceu</option></select></label></div>
+    <div class="form-grid"><div class="client-picker span-2"><div class="picker-filters"><label>Cliente<select id="appointmentClientMode"><option value="existing">Cliente cadastrado</option><option value="new">Novo cliente</option></select></label><label>Cidade do cadastro<select id="appointmentClientCity"></select></label><label>Buscar nome<input id="appointmentClientSearch" type="search" placeholder="Nome do cliente" autocomplete="off"></label></div><label>Cliente *<select id="appointmentClient" required></select></label><button id="newClientFromAppointment" type="button" class="text-btn">Cadastrar cliente</button><small id="appointmentClientInfo" class="muted"></small></div><label>Data *<input id="appointmentDate" type="date" required></label><label>Horário *<input id="appointmentTime" type="time" required></label><label>Duração prevista (minutos) *<input id="appointmentDuration" type="number" min="15" max="720" step="5" value="60" required></label><label>Cidade do atendimento *<select id="appointmentCity" required><option>Jacobina</option><option>Umburanas</option><option>Ourolândia</option></select></label><label>Valor combinado (R$)<input id="appointmentTotal" type="number" min="0" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="A combinar"></label><label>Status<select id="appointmentStatus"><option>Agendado</option><option>Confirmado</option><option>Concluído</option><option>Cancelado</option><option>Não compareceu</option></select></label></div>
     <fieldset class="styles-field"><legend>Estilos da tatuagem *</legend><div id="appointmentStyles" class="style-options"></div></fieldset>
     <label class="art-ready-control"><input id="appointmentArtReady" type="checkbox"><span>Arte pronta</span></label>
     <div class="deposit-fields"><label class="art-ready-control"><input id="appointmentDepositPaid" type="checkbox"><span>Sinal pago</span></label><label>Valor do sinal (R$)<input id="appointmentDepositValue" type="number" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="0,00" disabled></label></div>
@@ -238,5 +243,11 @@
 <dialog id="stockOptionsDialog" class="stock-options-dialog" aria-labelledby="stockOptionsTitle"><div class="dialog-content"><div class="panel-head"><div><p class="eyebrow">CARTUCHO</p><h3 id="stockOptionsTitle"></h3></div><button type="button" class="icon-btn" data-close="stockOptionsDialog" aria-label="Fechar opções do cartucho">×</button></div><p id="stockOptionsBalance" class="stock-options-balance"></p><div id="stockOptionsActions" class="stock-options-actions"></div></div></dialog>
 <dialog id="followupDialog" class="wide-dialog" aria-labelledby="followupTitle"><form id="followupForm" class="dialog-content form-stack"><div class="panel-head"><div><p id="followupStage" class="eyebrow"></p><h3 id="followupTitle"></h3></div><button type="button" class="icon-btn" data-close="followupDialog" aria-label="Fechar acompanhamento">×</button></div><p id="followupDate" class="muted"></p><label>Mensagem<textarea id="followupMessage" rows="8" maxlength="4000" required></textarea></label><button id="followupWhatsapp" type="button" class="btn whatsapp-btn">Abrir WhatsApp</button><label class="art-ready-control"><input id="followupDone" type="checkbox"><span>Contato realizado</span></label><small class="muted">Marque depois de enviar a mensagem ou conversar com o cliente.</small><p id="followupError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="followupDialog">Voltar</button><button type="submit" class="btn primary">Salvar acompanhamento</button></div></form></dialog>
 <dialog id="couponDialog" class="wide-dialog" aria-labelledby="couponTitle"><form id="couponForm" class="dialog-content form-stack"><div class="panel-head"><div><p class="eyebrow">CUPOM DE RETORNO</p><h3 id="couponTitle"></h3></div><button type="button" class="icon-btn" data-close="couponDialog" aria-label="Fechar cupom">×</button></div><p id="couponDates" class="muted"></p><label>Mensagem<textarea id="couponMessage" rows="8" maxlength="4000" required></textarea></label><button id="couponWhatsapp" type="button" class="btn whatsapp-btn">Abrir WhatsApp</button><label class="art-ready-control"><input id="couponUsed" type="checkbox"><span>Cupom utilizado</span></label><p id="couponError" class="form-error" role="alert" hidden></p><div class="form-actions"><button type="button" class="btn ghost" data-close="couponDialog">Voltar</button><button class="btn primary" type="submit">Salvar</button></div></form></dialog>
+
+<dialog id="whatsappMenuDialog" class="compact-dialog" aria-labelledby="whatsappMenuTitle"><div class="dialog-content"><div class="panel-head"><h3 id="whatsappMenuTitle">WhatsApp</h3><button type="button" class="icon-btn" data-close="whatsappMenuDialog" aria-label="Fechar">×</button></div><div id="whatsappMenuOptions" class="action-menu"></div></div></dialog>
+<dialog id="studioSettingsDialog" class="wide-dialog" aria-labelledby="studioSettingsTitle"><form id="studioSettingsForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="studioSettingsTitle">Localizações</h3><button type="button" class="icon-btn" data-close="studioSettingsDialog" aria-label="Fechar">×</button></div><label>Jacobina<input id="studioJacobina" type="url" placeholder="https://maps..."></label><label>Umburanas<input id="studioUmburanas" type="url" placeholder="https://maps..."></label><label>Ourolândia<input id="studioOurolandia" type="url" placeholder="https://maps..."></label><p id="studioSettingsError" class="form-error" role="alert" hidden></p><button type="submit" class="btn primary">Salvar</button></form></dialog>
+<dialog id="receivablesDialog" class="wide-dialog" aria-labelledby="receivablesTitle"><div class="dialog-content"><div class="panel-head"><h3 id="receivablesTitle">Parcelas PIX</h3><button type="button" class="icon-btn" data-close="receivablesDialog" aria-label="Fechar">×</button></div><div class="form-grid"><label>Mês<input id="receivableMonth" type="month"></label><label>Mostrar<select id="receivableStatus"><option value="due">Vencidas e deste mês</option><option value="open">Todas em aberto</option><option value="paid">Pagas no mês</option><option value="month">Vencimentos do mês</option></select></label></div><div id="receivableList"></div></div></dialog>
+<dialog id="pixReceiptDialog" class="compact-dialog" aria-labelledby="pixReceiptTitle"><form id="pixReceiptForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="pixReceiptTitle">Recebimento</h3><button type="button" class="icon-btn" data-close="pixReceiptDialog" aria-label="Fechar">×</button></div><p id="pixReceiptSummary" class="private-value"></p><label>Recebido em<input id="pixReceiptDate" type="date" required></label><p id="pixReceiptError" class="form-error" role="alert" hidden></p><div class="form-actions"><button id="undoPixReceipt" type="button" class="btn ghost">Marcar pendente</button><button type="submit" class="btn primary">Marcar pago</button></div></form></dialog>
+<dialog id="exportSalesDialog" class="compact-dialog" aria-labelledby="exportSalesTitle"><form id="exportSalesForm" class="dialog-content form-stack"><div class="panel-head"><h3 id="exportSalesTitle">Relatório mensal</h3><button type="button" class="icon-btn" data-close="exportSalesDialog" aria-label="Fechar">×</button></div><label>Mês<input id="exportSalesMonth" type="month" required></label><label>Formato<select id="exportSalesFormat"><option value="csv">CSV / Excel</option><option value="print">PDF / impressão</option></select></label><button type="submit" class="btn primary">Exportar</button></form></dialog>
 </body>
 </html>

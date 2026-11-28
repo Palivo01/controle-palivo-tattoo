@@ -30,7 +30,7 @@ function mixedPaymentSummary(){
 function syncSalePayment(initialize=false){
  const mixed=$("salePayment").value==="Misto",fields=$("mixedPaymentFields");fields.hidden=!mixed;fields.disabled=!mixed;
  if(mixed&&initialize){const total=Math.round(Number($("saleValue").value||0)*100),first=Math.floor(total/2);$("paymentMethod1").value="PIX";$("paymentMethod2").value="Dinheiro";$("paymentValue1").value=first?(first/100).toFixed(2):"";$("paymentValue2").value=total-first?((total-first)/100).toFixed(2):""}
- mixedPaymentSummary();
+ mixedPaymentSummary();syncFinancePayment();
 }
 function readSalePayments(){return $("salePayment").value==="Misto"?validateMixedPayments([1,2].map(i=>({forma:$("paymentMethod"+i).value,valor:$("paymentValue"+i).value})),$("saleValue").value):[]}
 
@@ -117,9 +117,9 @@ async function login(email,password){
 }
 function clearFinancialUI(){
   for(const id of ["clientHistory","clientLoyaltySummary","clientList","clientDetails","upcomingReminders"])$(id).textContent="";
-  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockAuditSummary","stockHistory","stockOptionsTitle","stockOptionsBalance","stockOptionsActions","followupPending","followupHistory","followupCoupons","followupAvailability"])$(id).textContent="";
+  for(const id of ["monthlyChart","cityChart","genderChart","paymentChart","stylesChart","recentSales","salesList","stockGrid","purchaseList","stockSummary","stockHistory","stockOptionsTitle","stockOptionsBalance","stockOptionsActions","followupPending","followupHistory","followupCoupons","followupAvailability","netReceived","netFees","netOutstanding","legacyCreditNote","receivableList","creditNetPreview","pixReceiptSummary","pixScheduleRows"])$(id).textContent="";
   for(const id of ["metricRevenue","metricCount","metricTicket","metricHours"])$(id).textContent="0";
-  $("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
+  resetFinanceForm();pixReceiptSelection="";$("saleForm").reset();$("saleId").value="";$("saleClientInfo").textContent="";$("cartridgeRows").textContent="";$("purchaseForm").reset();$("purchaseError").textContent="";
   $("purchaseCartridge").innerHTML='<option value="">Selecione</option>';
   $("filterYear").textContent="";for(const id of ["filterCity","filterPayment"])$(id).innerHTML='<option value="all">Todos</option>';
   $("showStyleRevenue").checked=false;$("styleRevenueNote").hidden=true;
@@ -266,7 +266,7 @@ function renderDashboard(){
   renderCityBars(groupSum(paidRows,"cidade"),revenue);
   renderGenderDistribution(genderRows);
   renderPaymentDonut(paidRows);
-  renderStyleStats(rows);
+  renderStyleStats(rows);renderFinanceExtras();
   $("recentSales").innerHTML=rows.slice(0,5).map(s=>`<div class="recent-item"><div><p>${esc(s.cliente)}</p><small>${formatDate(s.data_atendimento)} · ${esc(s.cidade)}</small></div><strong>${money(s.valor)}</strong></div>`).join("")||'<div class="empty">Nenhuma venda neste filtro.</div>';
 }
 function renderGenderDistribution(rows){
@@ -304,7 +304,7 @@ function renderPaymentDonut(rows){
 function renderSales(){
   const q=$("salesSearch").value.toLowerCase().trim();
   const rows=state.sales.filter(s=>[s.cliente,s.cidade,salePaymentDescription(s)].join(" ").toLowerCase().includes(q));
-  $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span>${s.forma_pagamento==="Misto"?`<small class="sale-payment-detail">${esc(salePaymentDescription(s))}</small>`:""}</div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><label class="art-ready-control compact invoice-control"><input type="checkbox" data-invoice="${esc(s.id)}" ${s.nf_emitida?"checked":""}><span>Nota fiscal emitida</span></label><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar">✎</button><button data-delete="${s.id}" class="delete" title="Excluir">×</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';
+  $("salesList").innerHTML=rows.map(s=>`<article class="sale-card"><div class="sale-date"><strong>${s.data_atendimento.slice(8,10)}</strong><small>${MONTHS[Number(s.data_atendimento.slice(5,7))-1]} ${s.data_atendimento.slice(0,4)}</small></div><div class="sale-client"><strong>${esc(s.cliente)}</strong><span>${esc(s.genero||"Não informado")} · ${esc(s.cidade)}</span>${s.forma_pagamento==="Misto"?`<small class="sale-payment-detail">${esc(salePaymentDescription(s))}</small>`:""}</div><div class="sale-meta"><small>Pagamento</small>${esc(s.forma_pagamento)}</div><label class="art-ready-control compact invoice-control"><input type="checkbox" data-invoice="${esc(s.id)}" ${s.nf_emitida?"checked":""}><span>Nota fiscal emitida</span></label><div class="sale-value"><strong>${money(s.valor)}</strong><small>${duration(s.duracao_minutos)}</small></div><div class="sale-actions"><button data-edit="${s.id}" title="Editar" aria-label="Editar venda">${actionIcon("edit")}</button><button data-delete="${s.id}" class="delete" title="Excluir" aria-label="Excluir venda">${actionIcon("trash")}</button></div></article>`).join("")||'<div class="empty panel">Nenhuma venda encontrada.</div>';applyFinancePrivacy();
 }
 function renderStock(){
   const active=state.stock.filter(stockIsActive),low=active.filter(s=>safeNumber(s.quantidade_atual)<10).length;
@@ -313,7 +313,7 @@ function renderStock(){
   [...active].sort(sortCartridges).forEach(s=>{const family=String(s.nome).toUpperCase().match(/(RL|RM|RS)$/)?.[1];if(family)groups[family].push(s)});
   const labels={RL:"Traço",RM:"Magnum",RS:"Round Shader"};
   $("stockGrid").innerHTML=Object.entries(groups).map(([family,items])=>`<section class="stock-family"><div class="stock-family-head"><h3>${family}</h3><span>${labels[family]} · ${items.length} variações</span></div><div class="stock-grid">${items.map(s=>{const qty=safeNumber(s.quantidade_atual);const level=qty>=20?"excellent":qty>=10?"available":qty>=5?"few":qty>0?"ending":"empty-stock";const status={excellent:"EXCELENTE",available:"DISPONÍVEL",few:"POUCO",ending:"ACABANDO","empty-stock":"NÃO HÁ"}[level];return `<article class="stock-card stock-card-interactive ${level}" role="button" tabindex="0" data-stock-options="${esc(s.id)}" aria-haspopup="dialog" aria-label="Abrir opções de ${esc(s.nome)}"><p class="eyebrow">${family}</p><h3>${esc(s.nome)}</h3><div class="stock-qty">${qty}</div><small>${qty<0?"saldo divergente":"unidades disponíveis"}</small><br><span class="status ${level}"><i aria-hidden="true"></i>${status}</span></article>`}).join("")}</div></section>`).join("");
-  renderStockAudit();
+  
 }
 function renderPurchases(){
   const byId=Object.fromEntries(state.cartridges.map(c=>[c.id,c.nome]));
@@ -334,7 +334,7 @@ function addCartridgeRow(cartuchoId="",quantidade=1){
   row.querySelector(".remove-row").onclick=()=>row.remove();
 }
 function resetSaleForm(){
-  saleAppointmentSource="";
+  saleAppointmentSource="";resetFinanceForm();
   renderSaleClients();
   setStyles("saleStyles",[]);
   $("saleForm").reset();resetClientPicker("sale");$("saleId").value="";$("saleDate").value=isoToday();$("saleDurationHours").value=0;$("saleDurationMinutes").value=30;$("cartridgeRows").innerHTML="";addCartridgeRow();$("saleFormTitle").textContent="Nova venda";$("cancelEdit").hidden=true;syncSaleClient();syncSalePayment();
@@ -347,7 +347,7 @@ async function saveSale(e){
   const materials=[...document.querySelectorAll(".cartridge-row")].map(r=>({cartucho_id:r.querySelector("select").value,quantidade:Number(r.querySelector("input").value)})).filter(x=>x.cartucho_id&&x.quantidade>0);
   try{
     const saleId=id||Store.uid();$("saleId").value=saleId;
-    payload.agendamento_id=selectedSaleAppointment();
+    payload.agendamento_id=selectedSaleAppointment();Object.assign(payload,readSaleFinance(payload));
     await Store.saveSale(saleId,payload,materials);
     toast(id?"Venda atualizada.":"Venda salva com sucesso.");resetSaleForm();try{await loadData(false)}catch{toast("Venda salva. Use Atualizar dados para recarregar o painel.","error")}showPage("dashboard");
   }catch(err){toast(err.message,"error")}finally{setBusy(form,false)}
@@ -378,6 +378,7 @@ function editSale(id){
   $("saleId").value=s.id;$("saleDate").value=s.data_atendimento;$("saleClient").value=s.cliente_id||"";$("saleGender").value=Store.load().clientes.find(c=>c.id===s.cliente_id)?.genero||s.genero||"Não informado";$("saleCity").value=s.cidade;$("saleValue").value=s.valor;$("salePayment").value=s.forma_pagamento;$("saleDurationHours").value=Math.floor(safeNumber(s.duracao_minutos)/60);$("saleDurationMinutes").value=safeNumber(s.duracao_minutos)%60;$("saleNotes").value=s.observacoes||"";$("saleInvoice").checked=s.nf_emitida===true;
   syncSalePayment();if(s.forma_pagamento==="Misto")for(const [i,part] of (s.pagamentos||[]).entries()){if(i>1)break;$("paymentMethod"+(i+1)).value=part.forma;$("paymentValue"+(i+1)).value=part.valor}mixedPaymentSummary();
   $("cartridgeRows").innerHTML="";state.usages.filter(u=>u.venda_id===id).forEach(u=>addCartridgeRow(u.cartucho_id,u.quantidade));if(!$("cartridgeRows").children.length)addCartridgeRow();
+  restoreSaleFinance(s);
   saleAppointmentSource=s.agendamento_id||"";syncSaleAppointment(s.agendamento_id||"");
   $("saleFormTitle").textContent="Editar venda";$("cancelEdit").hidden=false;showPage("nova-venda");window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -419,7 +420,8 @@ function bindEvents(){
   document.querySelectorAll("[data-page-link]").forEach(b=>b.onclick=()=>showPage(b.dataset.pageLink));
   document.querySelectorAll(".jump-sale").forEach(b=>b.onclick=()=>{resetSaleForm();showPage("nova-venda")});
   $("salePayment").onchange=()=>syncSalePayment(true);
-  for(const id of ["paymentMethod1","paymentMethod2","paymentValue1","paymentValue2"])$(id).oninput=mixedPaymentSummary;
+  for(const id of ["paymentMethod1","paymentMethod2","paymentValue1","paymentValue2"])$(id).oninput=()=>{mixedPaymentSummary();syncFinancePayment()};
+  $("saleValue").addEventListener("input",()=>syncFinancePayment(true));
   $("saleValue").oninput=()=>{if($("salePayment").value==="Misto"){const rest=Math.round(Number($("saleValue").value||0)*100)-Math.round(Number($("paymentValue1").value||0)*100);$("paymentValue2").value=rest>0?(rest/100).toFixed(2):"";mixedPaymentSummary()}};
   $("saleForm").addEventListener("submit",saveSale);$("purchaseForm").addEventListener("submit",savePurchase);
   $("addCartridgeRow").onclick=()=>addCartridgeRow();$("cancelEdit").onclick=()=>{resetSaleForm();showPage("vendas")};

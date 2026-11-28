@@ -1,0 +1,7 @@
+PALIVO TATTOO CONTROLE V13.0.0
+
+Primeiro execute TODO o ATUALIZAR-SUPABASE-V13.0.0.sql no SQL Editor do projeto do Controle.
+Depois substitua os arquivos do repositório controle-palivo-tattoo pelo conteúdo extraído deste ZIP, mantendo assets dentro de sua pasta.
+Não é o repositório do site institucional.
+Não é necessário rodar nenhum SQL antigo deste pacote.
+Consulte README.md para o fluxo de parcelas, taxas, exportação e mensagens.
